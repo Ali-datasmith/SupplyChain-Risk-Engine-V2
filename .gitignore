@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / tooling
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Colab / local artifacts
+.ipynb_checkpoints/
+/sample_data/
+/.config/
+/.local/
+/.cache/
+/.ipython/
+
+# Logs / telemetry
+logs/
+*.log
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Environment
+.env
+.env.*
