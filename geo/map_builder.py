@@ -4,7 +4,7 @@ DOM-safe Folium map construction.
 - build_map() is headless and unit-testable.
 - render_in_streamlit() lazily imports streamlit-folium.
 - FastMarkerCluster performs one JS-side injection.
-- Popups are bound inside the JS callback from row[2].
+- CartoDB dark_matter tiles; cyan/indigo cluster styling.
 """
 from __future__ import annotations
 
@@ -18,13 +18,23 @@ from schemas.scenario_schema import ScenarioConfig
 JS_CALLBACK = """
 function (row) {
     return L.circleMarker([row[0], row[1]], {
-        radius: 3,
-        weight: 0.25,
-        opacity: 0.85,
-        fillOpacity: 0.65
-    }).bindPopup(row[2]);
+        radius: 4,
+        weight: 0.6,
+        color: '#22D3EE',
+        opacity: 0.95,
+        fillColor: '#818CF8',
+        fillOpacity: 0.75
+    }).bindPopup(row[2], {className: 'obsidian-popup'});
 }
 """.strip()
+
+CARTO_DARK_TILES = (
+    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+)
+CARTO_ATTRIBUTION = (
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> '
+    '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+)
 
 
 def _popup_expression(df: pl.DataFrame) -> pl.Expr:
@@ -68,27 +78,21 @@ def _ensure_popup_text(df: pl.DataFrame) -> pl.DataFrame:
         return df.with_columns(
             pl.col("popup_text").fill_null("").cast(pl.String)
         )
-
     return df.with_columns(_popup_expression(df))
 
 
 def _map_center(df: pl.DataFrame) -> list[float]:
     if df.height == 0:
         return [0.0, 0.0]
-
     center = df.select(
         pl.col("latitude").mean().fill_null(0.0),
         pl.col("longitude").mean().fill_null(0.0),
     ).row(0)
-
     return [float(center[0]), float(center[1])]
 
 
 def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> folium.Map:
-    """
-    Pure headless builder returning a folium.Map.
-    Safe for 50k+ points via FastMarkerCluster.
-    """
+    """Pure headless builder. CartoDB dark_matter + FastMarkerCluster."""
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
 
@@ -102,24 +106,25 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> folium
     m = folium.Map(
         location=center,
         prefer_canvas=True,
+        tiles=CARTO_DARK_TILES,
+        attr=CARTO_ATTRIBUTION,
         zoom_start=2,
     )
 
     FastMarkerCluster(
         data=payload,
         callback=JS_CALLBACK,
+        options={
+            "showCoverageOnHover": False,
+            "spiderfyOnMaxZoom": True,
+        },
     ).add_to(m)
 
     return m
 
 
 def render_in_streamlit(map_obj: folium.Map):
-    """
-    Streamlit render wrapper only.
-
-    streamlit-folium is imported lazily so geo modules remain importable and
-    unit-testable without a Streamlit runtime.
-    """
+    """Lazy streamlit-folium import; headless-safe."""
     from streamlit_folium import st_folium
 
-    return st_folium(map_obj, returned_objects=[])
+    return st_folium(map_obj, returned_objects=[], height=560)

@@ -1,8 +1,7 @@
 """
-Jinja2 + Plotly interactive HTML report.
+Jinja2 + Plotly interactive HTML report (Executive Light palette).
 
-Consumes aggregated pl.DataFrame + dict[str, RiskNarrative].
-Returns self-contained HTML string.
+Reports are print-friendly for boards — never use the dark OBSIDIAN theme.
 """
 from __future__ import annotations
 
@@ -16,17 +15,30 @@ from schemas.narrative_schema import RiskNarrative
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
+# Executive Light palette for the embedded Plotly figure (print-friendly)
+_EXEC_PLOTLY = {
+    "paper_bgcolor": "#FFFFFF",
+    "plot_bgcolor": "#FFFFFF",
+    "font": {"family": "'Inter', sans-serif", "color": "#0F172A"},
+    "xaxis": {
+        "gridcolor": "#E2E8F0",
+        "zerolinecolor": "#E2E8F0",
+        "color": "#475569",
+    },
+    "yaxis": {
+        "gridcolor": "#E2E8F0",
+        "zerolinecolor": "#E2E8F0",
+        "color": "#475569",
+    },
+    "margin": {"l": 0, "r": 0, "t": 24, "b": 24},
+}
+
 
 def render_html_report(
     scored_df: pl.DataFrame,
     narratives: dict[str, RiskNarrative],
     scenario_name: str = "Default",
 ) -> str:
-    """
-    Render an interactive HTML report with Plotly visualization.
-
-    Returns HTML string.
-    """
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATE_DIR)),
         autoescape=select_autoescape(["html", "xml"]),
@@ -34,12 +46,13 @@ def render_html_report(
     template = env.get_template("report.html.j2")
 
     total_suppliers = scored_df.height
-    avg_risk = scored_df["composite_risk"].mean() if "composite_risk" in scored_df.columns else 0.0
-    high_risk_count = (
-        scored_df.filter(pl.col("composite_risk") >= 0.7).height
-        if "composite_risk" in scored_df.columns
-        else 0
-    )
+    avg_risk = 0.0
+    high_risk_count = 0
+
+    if "composite_risk" in scored_df.columns and scored_df.height > 0:
+        mean_val = scored_df["composite_risk"].mean()
+        avg_risk = float(mean_val) if mean_val is not None else 0.0
+        high_risk_count = scored_df.filter(pl.col("composite_risk") >= 0.7).height
 
     top_10 = (
         scored_df.sort("composite_risk", descending=True).head(10)
@@ -70,15 +83,15 @@ def render_html_report(
             go.Bar(
                 x=region_data["region"].to_list() if region_data.height > 0 else [],
                 y=region_data["avg_risk"].to_list() if region_data.height > 0 else [],
-                marker_color="rgb(55, 83, 109)",
+                marker_color="#2563EB",
             )
         ]
     )
     fig.update_layout(
-        title="Average Risk by Region",
+        title={"text": "Average Risk by Region", "x": 0, "font": {"size": 13}},
         xaxis_title="Region",
         yaxis_title="Average Composite Risk",
-        template="plotly_white",
+        **_EXEC_PLOTLY,
     )
     plotly_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
 
