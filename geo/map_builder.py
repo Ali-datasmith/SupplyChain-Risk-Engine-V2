@@ -2,10 +2,19 @@
 GPU-accelerated geospatial rendering via pydeck / deck.gl.
 
 Replaces the legacy Leaflet-based renderer (release-candidate instability on
-Streamlit Cloud) with the native Streamlit + deck.gl stack: 50k+ points, dark
+Streamlit Cloud) with the native deck.gl stack: 50k+ points, CARTO dark
 basemap, typed tooltips, zero per-point Python DOM objects.
+
+Rendering strategy: embed the self-contained deck.gl HTML document via
+streamlit.components.v1.html — the identical renderer that produces the
+verified Colab output. st.pydeck_chart renders blank on Community Cloud.
+pydeck 0.9.x only materializes the HTML string when a filename is supplied,
+so deck_to_html() writes to a temp file and reads it back.
 """
 from __future__ import annotations
+
+import tempfile
+from pathlib import Path
 
 import polars as pl
 import pydeck as pdk
@@ -39,7 +48,7 @@ def _risk_rgb_columns(df: pl.DataFrame, risk_col: str) -> pl.DataFrame:
 
 
 def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.Deck:
-    """Pure headless builder returning a pydeck Deck (dark basemap)."""
+    """Pure headless builder returning a pydeck Deck (CARTO dark basemap)."""
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
 
@@ -71,10 +80,10 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
         get_position=["longitude", "latitude"],
         get_fill_color="risk_rgb",
         get_radius=30_000,
-        radius_min_pixels=3,
+        radius_min_pixels=4,
         radius_max_pixels=14,
         pickable=True,
-        opacity=0.88,
+        opacity=0.9,
         auto_highlight=True,
     )
 
@@ -86,7 +95,7 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
     view_state = pdk.ViewState(
         latitude=float(center[0]),
         longitude=float(center[1]),
-        zoom=2.4,
+        zoom=1.6,
         pitch=0,
     )
 
@@ -113,8 +122,42 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
     )
 
 
-def render_in_streamlit(map_obj: pdk.Deck):
-    """Native Streamlit deck.gl render; headless-safe (lazy import)."""
-    import streamlit as st
+def deck_to_html(map_obj: pdk.Deck) -> str:
+    """
+    Materialize the standalone deck.gl HTML document.
 
-    return st.pydeck_chart(map_obj, use_container_width=True)
+    pydeck 0.9.x returns None from to_html() unless a filename is given, so we
+    write to a throwaway temp file and read the bytes back. This is the exact
+    document that renders the CARTO-dark scatter map verified in Colab.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as tmp:
+        path = tmp.name
+
+    map_obj.to_html(filename=path, open_browser=False, notebook_display=False)
+    html = Path(path).read_text(encoding="utf-8")
+    try:
+        Path(path).unlink(missing_ok=True)
+    except Exception:
+        pass
+    return html
+
+
+def render_in_streamlit(map_obj: pdk.Deck, height: int = 680):
+    """
+    Embed the self-contained deck.gl document (CARTO dark + scatter layer)
+    in a Streamlit iframe — the exact renderer verified in Colab. Re-rendered
+    from session state on every rerun, so the map no longer disappears when
+    switching tabs.
+    """
+    import streamlit as st
+    import streamlit.components.v1 as components
+
+    try:
+        html = deck_to_html(map_obj)
+    except Exception:
+        html = ""
+
+    if html:
+        components.html(html, height=height, scrolling=False)
+    else:
+        st.pydeck_chart(map_obj, use_container_width=True)

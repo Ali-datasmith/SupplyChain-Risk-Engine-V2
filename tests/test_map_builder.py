@@ -7,7 +7,7 @@ from pathlib import Path
 import polars as pl
 import pydeck as pdk
 
-from geo.map_builder import build_map
+from geo.map_builder import build_map, deck_to_html
 from schemas.scenario_schema import ScenarioConfig
 
 MAP_TEST_POINTS = 50_000
@@ -67,12 +67,13 @@ def test_deck_serializes_with_tooltip_and_colors() -> None:
 
 
 def test_headless_render_smoke() -> None:
-    """pydeck to_html() returns None headless; validate the serialized deck instead."""
+    """Standalone deck.gl HTML must be returned as a non-empty string."""
     deck = build_map(_small_df(), ScenarioConfig(scenario_name="smoke"))
-    payload = deck.to_json()
+    html = deck_to_html(deck)
 
-    assert isinstance(payload, str)
-    assert len(payload) > 1_000
+    assert isinstance(html, str)
+    assert len(html) > 1_000
+    assert "ScatterplotLayer" in html
 
 
 def test_no_folium_dependency_in_map_builder() -> None:
