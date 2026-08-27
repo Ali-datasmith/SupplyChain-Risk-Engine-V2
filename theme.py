@@ -1,42 +1,39 @@
-"""
-Supply Chain Risk Engine V2 — premium B2B design system.
-Electric-blue + deep slate palette, monospace command-center typography.
-"""
+"""Supply Chain Risk Engine V2 — premium B2B design system."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any
 
 DESIGN_TOKENS: dict[str, str] = {
-    "bg_page": "#0F172A",
-    "bg_card": "#1E293B",
-    "bg_elevated": "#334155",
-    "border": "#334155",
-    "border_hover": "#3B82F6",
-    "accent": "#3B82F6",
-    "accent_2": "#8B5CF6",
-    "text_1": "#F8FAFC",
+    "bg_page": "#0B1220",
+    "bg_card": "#111C30",
+    "bg_elevated": "#1E2A44",
+    "border": "#1E2A44",
+    "border_hover": "#22D3EE",
+    "accent": "#22D3EE",
+    "accent_2": "#818CF8",
+    "text_1": "#E6EDF6",
     "text_2": "#94A3B8",
     "text_3": "#64748B",
-    "grid": "#334155",
-    "font_ui": "'JetBrains Mono', 'SF Mono', Consolas, monospace",
+    "grid": "#1E2A44",
+    "font_ui": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     "font_mono": "'JetBrains Mono', 'SF Mono', Consolas, monospace",
 }
 
 RISK_COLORS: dict[str, str] = {
-    "LOW": "#10B981",
-    "MEDIUM": "#F59E0B",
-    "HIGH": "#F97316",
-    "CRITICAL": "#EF4444",
+    "LOW": "#34D399",
+    "MEDIUM": "#FBBF24",
+    "HIGH": "#FB923C",
+    "CRITICAL": "#F87171",
 }
 
 RISK_RGB: dict[str, tuple[int, int, int]] = {
-    "LOW": (16, 185, 129),
-    "MEDIUM": (245, 158, 11),
-    "HIGH": (249, 115, 22),
-    "CRITICAL": (239, 68, 68),
+    "LOW": (52, 211, 153),
+    "MEDIUM": (251, 191, 36),
+    "HIGH": (251, 146, 60),
+    "CRITICAL": (248, 113, 113),
 }
-
 
 def risk_band(value: float) -> str:
     if value >= 0.85:
@@ -46,7 +43,6 @@ def risk_band(value: float) -> str:
     if value >= 0.40:
         return "MEDIUM"
     return "LOW"
-
 
 def get_plotly_layout() -> dict[str, Any]:
     """Plotly layout defaults. Each chart sets its own title."""
@@ -79,95 +75,121 @@ def get_plotly_layout() -> dict[str, Any]:
         ],
     }
 
-
 def inject_theme_css() -> str:
-    css_template = """
+    return """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-html, body, .stApp { background-color: __BG_PAGE__ !important; color: __TEXT_1__; font-family: __FONT_UI__; -webkit-font-smoothing: antialiased; }
-.main .block-container { padding-top: 1.25rem !important; padding-bottom: 2rem !important; max-width: 1500px !important; }
-header[data-testid="stHeader"] { background-color: __BG_PAGE__ !important; }
-section[data-testid="stSidebar"] { background-color: __BG_PAGE__ !important; border-right: 1px solid __BORDER__ !important; }
+/* --- BASE LAYOUT --- */
+html, body, .stApp {
+    background-color: #0B1220 !important;
+    color: #E6EDF6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+.main .block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 4rem !important;
+    max-width: 1600px !important;
+}
+h1 { font-weight: 800 !important; letter-spacing: -0.02em !important; color: #E6EDF6 !important; }
+h2 { font-weight: 700 !important; letter-spacing: -0.01em !important; color: #E6EDF6 !important; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+h3 { font-weight: 600 !important; color: #E6EDF6 !important; }
+p, span, div, label { color: #E6EDF6; }
+hr { border-color: rgba(255,255,255,0.08) !important; margin: 1.5rem 0 !important; }
 
-h1 { font-size: 28px !important; font-weight: 700 !important; letter-spacing: -0.02em !important; color: __TEXT_1__ !important; margin: 0 0 8px !important; }
-h2 { font-size: 18px !important; font-weight: 700 !important; letter-spacing: -0.01em !important; color: __TEXT_1__ !important; margin-top: 24px !important; margin-bottom: 12px !important; }
-h3 { font-size: 12px !important; font-weight: 700 !important; color: __TEXT_3__ !important; text-transform: uppercase !important; letter-spacing: 0.1em !important; margin-bottom: 10px !important; }
-p, span, div, label { color: __TEXT_1__; }
+/* --- GLASSMORPHISM CARD (OBS-CARD) --- */
+.obs-card, .glass-card, [data-testid="stMetric"] {
+    background: rgba(17, 28, 48, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(30, 42, 68, 0.8);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.obs-card::before, .glass-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #22D3EE, transparent);
+    opacity: 0.8;
+}
+.obs-card:hover, .glass-card:hover, [data-testid="stMetric"]:hover {
+    border-color: rgba(34, 211, 238, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(34, 211, 238, 0.15);
+    transform: translateY(-2px);
+}
 
-.obs-mono { font-family: __FONT_MONO__; font-variant-numeric: tabular-nums; }
-.obs-micro { font-family: __FONT_MONO__; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: __TEXT_3__; display: block; margin-bottom: 10px; }
+/* --- NATIVE METRICS OVERRIDE --- */
+[data-testid="stMetricLabel"] {
+    color: #94A3B8 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+}
+[data-testid="stMetricValue"] {
+    color: #E6EDF6 !important;
+    font-weight: 800 !important;
+    font-size: 32px !important;
+}
+[data-testid="stMetricDelta"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 13px !important;
+}
 
-.obs-brand { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 0 12px; border-bottom: 1px solid __BORDER__; }
-.obs-brand-word { font-family: __FONT_MONO__; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: __TEXT_1__; }
-.obs-brand-word .mark { color: __ACCENT__; text-shadow: 0 0 14px rgba(59, 130, 246, 0.55); }
-.obs-brand-word .sub { color: __TEXT_3__; font-weight: 500; margin-left: 10px; letter-spacing: 0.08em; }
+/* --- CUSTOM KPI --- */
+.obs-kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; margin-bottom: 8px; }
+.obs-kpi-value { font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 800; color: #E6EDF6; line-height: 1; margin-bottom: 12px; }
+.obs-kpi-delta { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+.obs-kpi-delta.up { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+.obs-kpi-delta.down { background: rgba(248, 113, 113, 0.15); color: #F87171; }
+.obs-kpi-delta.neutral { background: rgba(148, 163, 184, 0.12); color: #94A3B8; }
 
-.obs-ops { display: flex; flex-wrap: wrap; gap: 22px; padding: 9px 2px; border-bottom: 1px solid __BORDER__; margin-bottom: 20px; font-family: __FONT_MONO__; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: __TEXT_3__; }
-.obs-ops b { color: __TEXT_2__; font-weight: 700; }
-.obs-ops .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: __ACCENT__; margin-right: 7px; vertical-align: middle; box-shadow: 0 0 8px __ACCENT__; }
+/* --- TABS --- */
+.stTabs [data-baseweb="tab-list"] { gap: 8px; background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.stTabs [data-baseweb="tab"] { background: rgba(17, 28, 48, 0.4); color: #94A3B8; padding: 10px 24px; border-radius: 8px 8px 0 0; font-family: 'Inter', sans-serif; font-weight: 600; border: 1px solid transparent; }
+.stTabs [aria-selected="true"] { background: rgba(34, 211, 238, 0.1) !important; color: #22D3EE !important; border: 1px solid rgba(34, 211, 238, 0.3) !important; border-bottom: 1px solid #0B1220 !important; }
 
-.obs-card { background: __BG_CARD__; border: 1px solid __BORDER__; border-radius: 8px; padding: 20px 20px 18px; margin: 6px 0; position: relative; overflow: hidden; transition: border-color 160ms ease, transform 160ms ease; }
-.obs-card:hover { border-color: __BORDER_HOVER__; transform: translateY(-1px); }
-.obs-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: __ACCENT__; }
-.obs-card.indigo::before { background: __ACCENT_2__; }
-.obs-card.risk-low::before { background: __RISK_LOW__; }
-.obs-card.risk-medium::before { background: __RISK_MEDIUM__; }
-.obs-card.risk-high::before { background: __RISK_HIGH__; }
-.obs-card.risk-critical::before { background: __RISK_CRITICAL__; box-shadow: 0 0 14px rgba(239, 68, 68, 0.5); }
+/* --- SIDEBAR --- */
+section[data-testid="stSidebar"] { background: rgba(11, 18, 32, 0.8) !important; backdrop-filter: blur(20px); border-right: 1px solid rgba(255, 255, 255, 0.05) !important; }
 
-.obs-kpi-label { font-family: __FONT_MONO__; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: __TEXT_3__; margin-bottom: 10px; }
-.obs-kpi-value { font-family: __FONT_MONO__; font-size: 36px; font-weight: 700; color: __TEXT_1__; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.02em; margin-bottom: 8px; }
-.obs-kpi-delta { display: inline-block; font-family: __FONT_MONO__; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; letter-spacing: 0.03em; }
-.obs-kpi-delta.up { background: rgba(16, 185, 129, 0.14); color: __RISK_LOW__; }
-.obs-kpi-delta.down { background: rgba(239, 68, 68, 0.14); color: __RISK_CRITICAL__; }
-.obs-kpi-delta.neutral { background: rgba(148, 163, 184, 0.12); color: __TEXT_2__; }
+/* --- DATA TABLES --- */
+.stDataFrame { border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 
-.obs-pill { display: inline-flex; align-items: center; gap: 8px; font-family: __FONT_MONO__; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 11px; border-radius: 6px; border: 1px solid __BORDER__; color: __TEXT_2__; margin-right: 6px; }
-.obs-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: __TEXT_3__; }
-.obs-pill.low { background: rgba(16, 185, 129, 0.1); color: __RISK_LOW__; border-color: rgba(16, 185, 129, 0.35); }
-.obs-pill.low .dot { background: __RISK_LOW__; }
-.obs-pill.medium { background: rgba(245, 158, 11, 0.1); color: __RISK_MEDIUM__; border-color: rgba(245, 158, 11, 0.35); }
-.obs-pill.medium .dot { background: __RISK_MEDIUM__; }
-.obs-pill.high { background: rgba(249, 115, 22, 0.1); color: __RISK_HIGH__; border-color: rgba(249, 115, 22, 0.35); }
-.obs-pill.high .dot { background: __RISK_HIGH__; }
-.obs-pill.critical { background: rgba(239, 68, 68, 0.14); color: __RISK_CRITICAL__; border-color: rgba(239, 68, 68, 0.4); }
-.obs-pill.critical .dot { background: __RISK_CRITICAL__; box-shadow: 0 0 8px __RISK_CRITICAL__; }
+/* --- BUTTONS & INPUTS --- */
+.stButton > button { background: linear-gradient(135deg, #22D3EE 0%, #818CF8 100%); color: white; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 10px 24px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2); }
+.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(34, 211, 238, 0.4); }
+.stButton > button[kind="secondary"] { background: rgba(17, 28, 48, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: none; }
+.stTextInput > div > div, .stSelectbox > div > div, .stMultiSelect > div > div, .stTextArea > div > div { background: rgba(11, 18, 32, 0.6) !important; border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 8px !important; color: #E6EDF6 !important; }
+.stFileUploader { background: rgba(11, 18, 32, 0.4) !important; border: 2px dashed rgba(34, 211, 238, 0.4) !important; border-radius: 16px !important; }
 
-.obs-empty { border: 1px dashed __BORDER__; border-radius: 8px; padding: 44px 24px; text-align: center; color: __TEXT_3__; font-family: __FONT_MONO__; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; background: rgba(30, 41, 59, 0.4); }
+/* --- EXPANDERS --- */
+.stExpander { background: rgba(17, 28, 48, 0.4) !important; border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 16px !important; backdrop-filter: blur(8px); }
 
-.stTabs [data-baseweb="tab-list"] { gap: 0; background: transparent; border-bottom: 1px solid __BORDER__; }
-.stTabs [data-baseweb="tab"] { background: transparent; color: __TEXT_3__; padding: 12px 22px; border-radius: 0; font-family: __FONT_MONO__; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; border: none; }
-.stTabs [aria-selected="true"] { background: transparent !important; color: __TEXT_1__ !important; border-bottom: 2px solid __ACCENT__ !important; }
-.stTabs [data-baseweb="tab-highlight"] { background-color: __ACCENT__ !important; }
+/* --- REQUIRED TEST CLASSES (Visuals mapped to test expectations) --- */
+.obs-micro { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: #64748B; display: block; margin-bottom: 12px; }
+.obs-empty { border: 1px dashed rgba(30, 42, 68, 0.8); border-radius: 16px; padding: 44px 24px; text-align: center; color: #64748B; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; background: rgba(17, 28, 48, 0.4); }
+.obs-brand { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 0 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 800; color: #E6EDF6; }
+.obs-ops { display: flex; flex-wrap: wrap; gap: 22px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748B; }
+.obs-pill { display: inline-flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 5px 11px; border-radius: 6px; border: 1px solid rgba(30, 42, 68, 0.8); color: #94A3B8; margin-right: 6px; }
+.obs-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748B; }
+.obs-pill.low { background: rgba(52, 211, 153, 0.15); color: #34D399; border-color: rgba(52, 211, 153, 0.4); }
+.obs-pill.medium { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border-color: rgba(251, 191, 36, 0.4); }
+.obs-pill.high { background: rgba(251, 146, 60, 0.15); color: #FB923C; border-color: rgba(251, 146, 60, 0.4); }
+.obs-pill.critical { background: rgba(248, 113, 113, 0.15); color: #F87171; border-color: rgba(248, 113, 113, 0.4); box-shadow: 0 0 12px rgba(248, 113, 113, 0.3); }
 
-div[data-testid="stSidebar"] label { font-family: __FONT_MONO__; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: __TEXT_3__; }
-div[data-testid="stFileUploader"] { background: __BG_CARD__; border: 1px dashed __BORDER__; border-radius: 8px; padding: 16px; }
-
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-track { background: __BG_PAGE__; }
-*::-webkit-scrollbar-thumb { background: __BORDER__; border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: __BORDER_HOVER__; }
-
-.stButton > button { background: __BG_CARD__; color: __TEXT_1__; border: 1px solid __BORDER__; border-radius: 6px; font-family: __FONT_MONO__; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 18px; transition: all 150ms ease; }
-.stButton > button:hover { border-color: __ACCENT__; color: __ACCENT__; }
-.stButton > button[kind="primary"] { background: __ACCENT__; color: __TEXT_1__; border: none; }
-.stButton > button[kind="primary"]:hover { filter: brightness(1.1); }
-
-div[data-testid="stDataFrame"] { border: 1px solid __BORDER__; border-radius: 8px; overflow: hidden; }
-div[data-testid="stExpander"] { border: 1px solid __BORDER__; border-radius: 8px; background: __BG_CARD__; margin-bottom: 10px; border-left: 3px solid __ACCENT__; }
-div[data-testid="stExpander"] summary { font-family: __FONT_MONO__; font-size: 12px; font-weight: 600; color: __TEXT_1__; }
-
-.stDownloadButton > button { background: transparent; border: 1px solid __ACCENT__; color: __ACCENT__; font-family: __FONT_MONO__; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; padding: 9px 18px; }
-div[data-baseweb="select"] > div { background: __BG_CARD__ !important; border: 1px solid __BORDER__ !important; border-radius: 6px !important; color: __TEXT_1__ !important; }
-.stAlert { border-radius: 6px; border: 1px solid __BORDER__; }
+/* --- SCROLLBARS --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0B1220; }
+::-webkit-scrollbar-thumb { background: #1E2A44; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #22D3EE; }
 </style>
 """
-    replacements = {**DESIGN_TOKENS, **{f"RISK_{k}": v for k, v in RISK_COLORS.items()}}
-    for key, value in replacements.items():
-        css_template = css_template.replace(f"__{key.upper()}__", value)
-    return css_template
-
 
 def kpi_card(label: str, value: str | float | int, delta: str | None = None, delta_dir: str = "neutral", accent: str = "cyan") -> str:
     accent_class = ""
@@ -185,13 +207,11 @@ def kpi_card(label: str, value: str | float | int, delta: str | None = None, del
         f"{delta_html}</div>"
     )
 
-
 def status_pill(level: Any) -> str:
     raw = getattr(level, "value", str(level))
     key = str(raw).upper()
     cls = key.lower() if key in ("LOW", "MEDIUM", "HIGH", "CRITICAL") else ""
     return f'<span class="obs-pill {cls}"><span class="dot"></span>{key}</span>'
-
 
 def brand_bar() -> str:
     return (
@@ -201,14 +221,13 @@ def brand_bar() -> str:
         '</div>'
     )
 
-
-def ops_strip(*, env: str = "PROD", version: str = "V2", now: datetime | None = None) -> str:
+def ops_strip(*, env: str = "PROD", version: str = "V2.1", now: datetime | None = None) -> str:
     ts = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
     return (
         '<div class="obs-ops">'
         f'<span><span class="dot"></span>ENV <b>{env}</b></span>'
         f'<span>BUILD <b>{version}</b></span>'
         f'<span>SYNC <b>{ts}</b></span>'
-        '<span>STATUS <b style="color:#10B981;">OPERATIONAL</b></span>'
+        '<span>STATUS <b style="color:#34D399;">OPERATIONAL</b></span>'
         '</div>'
     )

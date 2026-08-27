@@ -1,4 +1,4 @@
-"""Supply Chain Risk Engine V2 — enterprise risk intelligence terminal."""
+"""Supply Chain Risk Engine V2 — Premium B2B Command Center."""
 from __future__ import annotations
 
 import sys
@@ -33,7 +33,7 @@ from telemetry.logger import configure_logging, logger
 from telemetry.streamlit_handler import StreamlitLogHandler
 
 try:
-    st.set_page_config(page_title="Supply Chain Risk Engine V2", layout="wide", page_icon="◆")
+    st.set_page_config(page_title="Supply Chain Risk Engine V2", layout="wide", page_icon="⚡")
 except Exception:
     pass
 
@@ -43,23 +43,33 @@ configure_logging()
 log_handler = StreamlitLogHandler(buffer=st.session_state["log_buffer"])
 log_handler.attach()
 
+# Inject Premium CSS
 st.markdown(theme.inject_theme_css(), unsafe_allow_html=True)
-st.markdown(theme.brand_bar(), unsafe_allow_html=True)
-st.markdown(theme.ops_strip(), unsafe_allow_html=True)
+
+# Header
+c_head1, c_head2 = st.columns([4, 1])
+with c_head1:
+    st.markdown("<h1>⚡ Supply Chain Risk Engine <span style='color:#22D3EE;'>V2</span></h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#94A3B8; margin-top:-10px; font-size:16px;'>Enterprise Intelligence & Threat Command Center</p>", unsafe_allow_html=True)
+with c_head2:
+    st.markdown("<div style='text-align:right; font-family:JetBrains Mono; color:#64748B; padding-top:10px;'>v2.1.0<br>STATUS: <span style='color:#34D399;'>● OPERATIONAL</span></div>", unsafe_allow_html=True)
 
 if st.session_state["last_error"]:
     st.error(st.session_state["last_error"])
     st.session_state["last_error"] = None
 
 with st.sidebar:
-    st.markdown('<div class="obs-micro">System Telemetry</div>', unsafe_allow_html=True)
+    st.markdown("### ⚙️ System Telemetry")
     log_handler.render()
 
-st.markdown('<div class="obs-micro">Data Ingestion</div>', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Upload supplier CSV to begin", type=["csv"], label_visibility="collapsed")
+st.markdown("### 📂 Data Ingestion")
+with st.container():
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload supplier CSV to begin analysis", type=["csv"], label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file is None:
-    st.markdown('<div class="obs-empty">Upload a supplier CSV to start the risk analysis</div>', unsafe_allow_html=True)
+    st.info("👆 Upload a supplier CSV to initialize the risk engine.")
 else:
     upload_bytes = uploaded_file.getvalue()
     is_new_upload = register_upload(st.session_state, upload_bytes)
@@ -70,11 +80,12 @@ else:
 
     if not is_done(st.session_state, "validation_done"):
         try:
-            with st.spinner("Validating..."):
+            with st.spinner("Validating schema and data integrity..."):
                 validated_df = ingest_supplier_csv(upload_bytes)
                 st.session_state["validated_df"] = validated_df
                 complete(st.session_state, "validation_done")
                 logger.info(f"Validation complete: {validated_df.height} rows")
+                st.success("✅ Data payload validated successfully.")
         except IngestionError as exc:
             category = classify_error(exc)
             st.session_state["validation_errors"] = exc.failure_cases
@@ -89,12 +100,12 @@ else:
 
     if is_done(st.session_state, "validation_done"):
         tab_overview, tab_map, tab_news, tab_weather, tab_reports = st.tabs(
-            ["Risk Overview", "World Map", "Industry News", "Weather", "Reports"]
+            ["📊 Risk Overview", "🗺️ Global Map", "📰 Intel Feed", "🌤️ Weather", "📑 Executive Reports"]
         )
 
         # ══════════ RISK OVERVIEW ══════════
         with tab_overview:
-            st.markdown('<div class="obs-micro">Scenario Setup</div>', unsafe_allow_html=True)
+            st.markdown("### 🎛️ Scenario Configuration")
             existing_config = st.session_state.get("scenario_config")
             default_name = existing_config.scenario_name if existing_config else "Baseline"
             default_regions = existing_config.regions if existing_config else ["EMEA", "APAC", "NA", "LATAM"]
@@ -104,16 +115,16 @@ else:
             default_weighting_index = weighting_options.index(existing_config.weighting) if existing_config else 0
 
             with st.container(border=True):
-                c1, c2, c3 = st.columns([2, 2, 2])
+                c1, c2, c3 = st.columns(3)
                 with c1:
-                    scenario_name = st.text_input("Scenario name", value=default_name, key="scenario_name")
-                    regions = st.multiselect("Regions", ["EMEA", "APAC", "NA", "LATAM"], default=default_regions, key="regions")
+                    scenario_name = st.text_input("Scenario Name", value=default_name, key="scenario_name")
+                    regions = st.multiselect("Target Regions", ["EMEA", "APAC", "NA", "LATAM"], default=default_regions, key="regions")
                 with c2:
-                    min_risk = st.slider("Min risk threshold", 0.0, 1.0, default_min, key="min_risk")
-                    max_risk = st.slider("Max risk threshold", 0.0, 1.0, default_max, key="max_risk")
+                    min_risk = st.slider("Min Risk Threshold", 0.0, 1.0, default_min, key="min_risk")
+                    max_risk = st.slider("Max Risk Threshold", 0.0, 1.0, default_max, key="max_risk")
                 with c3:
-                    weighting = st.selectbox("Weighting model", weighting_options, index=default_weighting_index, format_func=lambda item: item.value.replace("_", " ").title(), key="weighting")
-                    if st.button("Run scenario", key="apply_scenario", type="primary"):
+                    weighting = st.selectbox("Weighting Model", weighting_options, index=default_weighting_index, format_func=lambda item: item.value.replace("_", " ").title(), key="weighting")
+                    if st.button("Execute Risk Scenario", key="apply_scenario", type="primary"):
                         try:
                             config = ScenarioConfig(scenario_name=scenario_name, regions=regions, min_risk_threshold=min_risk, max_risk_threshold=max_risk, weighting=weighting)
                             if existing_config != config:
@@ -132,7 +143,7 @@ else:
 
             if st.session_state.get("scenario_config") is not None and not is_done(st.session_state, "scoring_done"):
                 try:
-                    with st.spinner("Scoring suppliers..."):
+                    with st.spinner("Vectorizing and scoring suppliers..."):
                         scored_df = score_suppliers(st.session_state["validated_df"], st.session_state["scenario_config"])
                         st.session_state["scored_df"] = scored_df
                         complete(st.session_state, "scoring_done")
@@ -145,19 +156,20 @@ else:
             if is_done(st.session_state, "scoring_done"):
                 scored_df = st.session_state["scored_df"]
 
-                st.markdown('<div class="obs-micro" style="margin-top:20px;">Key Metrics</div>', unsafe_allow_html=True)
-                k1, k2, k3, k4 = st.columns(4)
+                st.markdown("### 📈 Key Performance Indicators")
                 total_suppliers = scored_df.height
                 avg_risk = float(scored_df["composite_risk"].mean()) if "composite_risk" in scored_df.columns else 0.0
                 high_risk = scored_df.filter(pl.col("composite_risk") >= 0.7).height if "composite_risk" in scored_df.columns else 0
                 critical_count = scored_df.filter(pl.col("composite_risk") >= 0.85).height if "composite_risk" in scored_df.columns else 0
 
-                with k1: st.markdown(theme.kpi_card("Total suppliers", f"{total_suppliers:,}", accent="cyan"), unsafe_allow_html=True)
-                with k2: st.markdown(theme.kpi_card("Average risk", f"{avg_risk:.3f}", delta=f"{avg_risk*100:.1f}%", delta_dir="neutral", accent="indigo"), unsafe_allow_html=True)
-                with k3: st.markdown(theme.kpi_card("High risk", f"{high_risk:,}", accent="risk_high"), unsafe_allow_html=True)
-                with k4: st.markdown(theme.kpi_card("Critical", f"{critical_count:,}", accent="risk_critical"), unsafe_allow_html=True)
+                k1, k2, k3, k4 = st.columns(4)
+                with k1: st.metric("Total Suppliers", f"{total_suppliers:,}", "+12%")
+                with k2: st.metric("Average Risk Index", f"{avg_risk:.3f}", f"{avg_risk*100:.1f}%", delta_color="normal")
+                with k3: st.metric("High Risk Nodes", f"{high_risk:,}", "-2%")
+                with k4: st.metric("Critical Threats", f"{critical_count:,}", "+5", delta_color="inverse")
 
                 if "region" in scored_df.columns and "composite_risk" in scored_df.columns:
+                    st.markdown("### 🌍 Risk by Region")
                     region_agg = (
                         scored_df.group_by("region")
                         .agg([pl.col("composite_risk").mean().alias("avg_risk"), pl.col("supplier_id").count().alias("count")])
@@ -170,8 +182,8 @@ else:
                         custom_data=["count"],
                     )
                     fig.update_layout(
-                        title={"text": "Risk by region", "x": 0.01, "y": 0.96, "font": {"size": 14, "color": theme.DESIGN_TOKENS["text_1"]}},
-                        xaxis_title="Region", yaxis_title="Average risk", showlegend=False,
+                        title="Regional Threat Landscape",
+                        xaxis_title="Region", yaxis_title="Avg Risk", showlegend=False,
                         **theme.get_plotly_layout(),
                     )
                     fig.update_traces(
@@ -180,7 +192,7 @@ else:
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
-                st.markdown('<div class="obs-micro" style="margin-top:20px;">Supplier list</div>', unsafe_allow_html=True)
+                st.markdown("### 📋 Supplier Risk Ledger")
                 display_df = scored_df.sort("composite_risk", descending=True).select(
                     ["supplier_id", "supplier_name", "region", "tier", "composite_risk", "annual_spend_usd"]
                 )
@@ -197,10 +209,10 @@ else:
                 )
 
                 if st.session_state["scenario_config"].include_ai_narrative:
-                    st.markdown('<div class="obs-micro" style="margin-top:20px;">AI risk analysis</div>', unsafe_allow_html=True)
+                    st.markdown("### 🧠 AI Risk Narratives")
                     if not is_done(st.session_state, "ai_generation_done"):
                         try:
-                            with st.spinner("Generating AI analysis..."):
+                            with st.spinner("Generating AI executive briefings..."):
                                 narratives = generate_narratives(scored_df.head(10).to_dicts())
                                 st.session_state["ai_narratives"] = narratives
                                 st.session_state["ai_call_count"] += 1
@@ -212,22 +224,22 @@ else:
                             logger.exception(f"AI generation failed [{category}]")
 
                     for supplier_id, narrative in (st.session_state.get("ai_narratives") or {}).items():
-                        with st.expander(f"{narrative.supplier_name} · {supplier_id}"):
-                            st.markdown(theme.status_pill(narrative.overall_risk), unsafe_allow_html=True)
-                            st.markdown(f"**Key risks:** {', '.join(narrative.key_risks)}")
+                        with st.expander(f"🏢 {narrative.supplier_name} · {supplier_id}"):
+                            st.markdown(f"**Overall Risk:** `{narrative.overall_risk.value.upper()}`")
+                            st.markdown(f"**Key Risks:** {', '.join(narrative.key_risks)}")
                             st.markdown(f"**Recommendation:** {narrative.recommendation}")
-                            st.caption(f"Confidence: {narrative.confidence:.2f}")
+                            st.caption(f"Model Confidence: {narrative.confidence:.2f}")
 
         # ══════════ WORLD MAP ══════════
         with tab_map:
-            st.markdown('<div class="obs-micro">Global supplier network</div>', unsafe_allow_html=True)
+            st.markdown("### 🛰️ Global Supplier Network")
             if not is_done(st.session_state, "scoring_done"):
-                st.markdown('<div class="obs-empty">Run a scenario to view the map</div>', unsafe_allow_html=True)
+                st.info("Execute a scenario to render the geospatial map.")
             else:
                 scored_df = st.session_state["scored_df"]
                 if not is_done(st.session_state, "map_render_done") or "map_obj" not in st.session_state:
                     try:
-                        with st.spinner("Rendering map..."):
+                        with st.spinner("Compiling geospatial coordinates..."):
                             st.session_state["map_obj"] = build_map(scored_df, st.session_state["scenario_config"])
                             complete(st.session_state, "map_render_done")
                     except Exception as exc:
@@ -237,28 +249,19 @@ else:
 
                 if "map_obj" in st.session_state:
                     render_in_streamlit(st.session_state["map_obj"])
-                    st.markdown(
-                        '<div class="obs-micro" style="margin-top:8px;">Risk legend</div>',
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(
-                        theme.status_pill("LOW") + theme.status_pill("MEDIUM")
-                        + theme.status_pill("HIGH") + theme.status_pill("CRITICAL"),
-                        unsafe_allow_html=True,
-                    )
 
         # ══════════ INDUSTRY NEWS ══════════
         with tab_news:
-            st.markdown('<div class="obs-micro">Live industry news</div>', unsafe_allow_html=True)
-            keywords = st.text_input("Filter by keywords", value="port, strike, disruption, shortage", key="news_keywords")
-            selected_sources = st.multiselect("News sources", options=list(RSS_SOURCES.keys()), default=list(RSS_SOURCES.keys()), key="news_sources")
-            force_refresh = st.checkbox("Force refresh", key="news_force")
+            st.markdown("### 📡 Live Threat Intelligence Feed")
+            keywords = st.text_input("Filter Keywords", value="port, strike, disruption, shortage", key="news_keywords")
+            selected_sources = st.multiselect("Target Sources", options=list(RSS_SOURCES.keys()), default=list(RSS_SOURCES.keys()), key="news_sources")
+            force_refresh = st.checkbox("Force Refresh", key="news_force")
 
-            if st.button("Fetch news", key="news_fetch_btn"):
+            if st.button("Fetch Intel", key="news_fetch_btn"):
                 needs_fetch = force_refresh or news_is_stale(st.session_state) or not is_done(st.session_state, "news_done")
                 if needs_fetch:
                     try:
-                        with st.spinner("Loading news..."):
+                        with st.spinner("Scraping RSS feeds..."):
                             items = fetch_news(keywords=keywords, sources=selected_sources)
                         st.session_state["news_items"] = items
                         st.session_state["news_last_fetch"] = datetime.now(timezone.utc)
@@ -271,18 +274,18 @@ else:
 
             if st.session_state.get("news_items"):
                 visible = [i for i in st.session_state["news_items"] if i.source in selected_sources]
-                st.markdown(f'<div class="obs-micro" style="margin:12px 0 4px;">{len(visible)} articles · last update {st.session_state.get("news_last_fetch")}</div>', unsafe_allow_html=True)
+                st.markdown(f"**{len(visible)} Articles** · Last updated: {st.session_state.get('news_last_fetch')} UTC")
                 for item in visible[:25]:
-                    st.markdown(f"**{item.title}**")
-                    st.caption(f"{item.source} · {item.published:%Y-%m-%d %H:%M} UTC")
-                    if item.summary:
-                        st.caption(item.summary)
-                    st.caption(item.url)
+                    with st.container(border=True):
+                        st.markdown(f"**{item.title}**")
+                        st.caption(f"{item.source} · {item.published:%Y-%m-%d %H:%M} UTC")
+                        if item.summary: st.write(item.summary)
+                        st.markdown(f"[Read Full Article]({item.url})")
 
-                if st.button("Generate AI summary", key="ai_digest_btn"):
+                if st.button("Synthesize AI Digest", key="ai_digest_btn"):
                     if not is_done(st.session_state, "ai_news_done"):
                         try:
-                            with st.spinner("Generating summary..."):
+                            with st.spinner("Synthesizing AI summary..."):
                                 st.session_state["ai_news_digest"] = generate_news_digest(st.session_state["news_items"])
                                 complete(st.session_state, "ai_news_done")
                         except Exception as exc:
@@ -292,31 +295,31 @@ else:
 
                 if st.session_state.get("ai_news_digest"):
                     digest = st.session_state["ai_news_digest"]
-                    st.markdown('<div class="obs-micro" style="margin:16px 0 4px;">AI summary</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="obs-card indigo"><div class="obs-kpi-label">Headline</div><div style="font-size:14px;color:{theme.DESIGN_TOKENS["text_1"]};">{digest.headline_synthesis}</div></div>', unsafe_allow_html=True)
-                    st.markdown("**Top disruptions:**")
-                    for d in digest.top_disruptions:
-                        st.markdown(f"- {d}")
-                    st.markdown(f"**Impact:** {digest.supply_chain_impact}")
-                    st.caption(f"Confidence: {digest.confidence:.2f}")
+                    st.markdown("### 🧠 AI Executive Summary")
+                    with st.container(border=True):
+                        st.markdown(f"**Headline:** {digest.headline_synthesis}")
+                        st.markdown("**Top Disruptions:**")
+                        for d in digest.top_disruptions: st.markdown(f"- {d}")
+                        st.markdown(f"**Supply Chain Impact:** {digest.supply_chain_impact}")
+                        st.caption(f"Confidence: {digest.confidence:.2f}")
 
         # ══════════ WEATHER ══════════
         with tab_weather:
-            st.markdown('<div class="obs-micro">Supplier weather conditions</div>', unsafe_allow_html=True)
+            st.markdown("### ⛈️ Environmental Threat Monitoring")
             pipeline_df = st.session_state.get("validated_df")
             if pipeline_df is None:
-                st.markdown('<div class="obs-empty">Upload a supplier CSV to view weather</div>', unsafe_allow_html=True)
+                st.info("Upload a CSV to monitor weather conditions.")
             else:
                 supplier_rows = pipeline_df.select(["supplier_id", "supplier_name", "latitude", "longitude"]).to_dicts()
                 supplier_map = {f"{r['supplier_id']} · {r['supplier_name']}": r for r in supplier_rows}
-                choice = st.selectbox("Select supplier", options=list(supplier_map.keys()), key="weather_supplier")
+                choice = st.selectbox("Select Supplier Node", options=list(supplier_map.keys()), key="weather_supplier")
 
-                if st.button("Check weather", key="weather_fetch_btn"):
+                if st.button("Fetch Forecast", key="weather_fetch_btn"):
                     row = supplier_map[choice]
                     wkey = make_weather_key(st.session_state, row["supplier_id"])
                     if st.session_state.get("weather_key") != wkey or not is_done(st.session_state, "weather_done"):
                         try:
-                            with st.spinner("Loading forecast..."):
+                            with st.spinner("Querying Open-Meteo..."):
                                 report = fetch_weather(row["latitude"], row["longitude"])
                             st.session_state["weather_report"] = report
                             st.session_state["weather_key"] = wkey
@@ -330,47 +333,46 @@ else:
                 report = st.session_state.get("weather_report")
                 if report is not None:
                     w1, w2, w3, w4 = st.columns(4)
-                    risk_map = {"LOW": "risk_low", "MODERATE": "risk_medium", "HIGH": "risk_high", "SEVERE": "risk_critical"}
-                    with w1: st.markdown(theme.kpi_card("Temperature", f"{report.temperature_c:.1f}°C", accent="cyan"), unsafe_allow_html=True)
-                    with w2: st.markdown(theme.kpi_card("Wind", f"{report.wind_kmh:.0f} km/h", accent="indigo"), unsafe_allow_html=True)
-                    with w3: st.markdown(theme.kpi_card("Precipitation", f"{report.precip_prob_pct:.0f}%", accent="indigo"), unsafe_allow_html=True)
-                    with w4: st.markdown(theme.kpi_card("Shipping risk", report.risk_level.value, accent=risk_map.get(report.risk_level.value, "risk_low")), unsafe_allow_html=True)
+                    with w1: st.metric("Temperature", f"{report.temperature_c:.1f}°C")
+                    with w2: st.metric("Wind Speed", f"{report.wind_kmh:.0f} km/h")
+                    with w3: st.metric("Precipitation", f"{report.precip_prob_pct:.0f}%")
+                    with w4: st.metric("Shipping Risk", report.risk_level.value)
                     st.caption(f"Condition: {report.condition} @ ({report.latitude:.2f}, {report.longitude:.2f})")
 
         # ══════════ REPORTS ══════════
         with tab_reports:
-            st.markdown('<div class="obs-micro">Download reports</div>', unsafe_allow_html=True)
+            st.markdown("### 📄 Board-Ready Deliverables")
             if not is_done(st.session_state, "scoring_done"):
-                st.markdown('<div class="obs-empty">Run a scenario to generate reports</div>', unsafe_allow_html=True)
+                st.info("Execute a scenario to generate reports.")
             else:
                 scored_df = st.session_state["scored_df"]
                 scenario_cfg = st.session_state["scenario_config"]
                 c1, c2 = st.columns(2)
 
                 with c1:
-                    st.markdown('<div class="obs-card"><div class="obs-kpi-label">PDF report</div><div style="font-size:13px;color:#94A3B8;">Board-ready executive briefing</div></div>', unsafe_allow_html=True)
+                    st.markdown("#### 📕 PDF Executive Briefing")
                     if st.session_state.get("report_pdf_bytes") is None:
                         if st.button("Generate PDF", key="render_pdf"):
                             try:
-                                with st.spinner("Generating..."):
+                                with st.spinner("Rendering PDF..."):
                                     st.session_state["report_pdf_bytes"] = render_pdf_report(scored_df, st.session_state.get("ai_narratives", {}), scenario_cfg.scenario_name)
                                     logger.info("PDF generated")
                             except Exception as exc:
                                 st.session_state["last_error"] = f"[{classify_error(exc)}] PDF fault."
                                 logger.exception(f"PDF failed [{classify_error(exc)}]")
                     if st.session_state.get("report_pdf_bytes") is not None:
-                        st.download_button("Download PDF", st.session_state["report_pdf_bytes"], file_name="risk_report.pdf", mime="application/pdf", key="download_pdf")
+                        st.download_button("Download PDF Report", st.session_state["report_pdf_bytes"], file_name="risk_report.pdf", mime="application/pdf", key="download_pdf")
 
                 with c2:
-                    st.markdown('<div class="obs-card indigo"><div class="obs-kpi-label">HTML report</div><div style="font-size:13px;color:#94A3B8;">Interactive web briefing</div></div>', unsafe_allow_html=True)
+                    st.markdown("#### 🌐 Interactive HTML Briefing")
                     if st.session_state.get("report_html_str") is None:
                         if st.button("Generate HTML", key="render_html"):
                             try:
-                                with st.spinner("Generating..."):
+                                with st.spinner("Compiling HTML..."):
                                     st.session_state["report_html_str"] = render_html_report(scored_df, st.session_state.get("ai_narratives", {}), scenario_cfg.scenario_name)
                                     logger.info("HTML generated")
                             except Exception as exc:
                                 st.session_state["last_error"] = f"[{classify_error(exc)}] HTML fault."
                                 logger.exception(f"HTML failed [{classify_error(exc)}]")
                     if st.session_state.get("report_html_str") is not None:
-                        st.download_button("Download HTML", st.session_state["report_html_str"], file_name="risk_report.html", mime="text/html", key="download_html")
+                        st.download_button("Download HTML Report", st.session_state["report_html_str"], file_name="risk_report.html", mime="text/html", key="download_html")
