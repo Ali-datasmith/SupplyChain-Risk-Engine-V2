@@ -6,16 +6,17 @@ polars>=1.44.0,<1.45
 duckdb>=1.5.5,<1.6
 pandera[polars]>=0.32.1,<0.33
 
-# ── Geospatial (deck.gl; folium RC removed) ───────────────
+# ── Geospatial (deck.gl) ──────────────────────────────────
 pydeck>=0.9.0,<1.0
 
 # ── AI ───────────────────────────────────────────────────
 google-genai>=1.0.0
 pydantic>=2.7,<3.0
 
-# ── Resilience ────────────────────────────────────────────
+# ── Resilience & Live Intelligence ────────────────────────
 httpx>=0.28.1,<0.29
 tenacity>=9.0.0
+feedparser>=6.0.10
 
 # ── Telemetry ─────────────────────────────────────────────
 loguru>=0.7.3,<0.8
