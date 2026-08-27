@@ -1,10 +1,10 @@
 """
-Lazy CSV ingestion edge.
+Lazy CSV ingestion edge with a vectorized sanitization stage.
 
-2026 Polars rules enforced:
-- pl.scan_csv() only.
-- Never pass rechunk=, cache=, or retries=.
-- Use schema_overrides for deterministic dtypes.
+Pipeline: scan (all-String) -> trim/de-space/repair -> typed casts -> LazyFrame.
+Real-world dirty payloads (padded enums, spaced numerics, broken dates) are
+repaired; genuinely invalid values become null via strict=False casts and are
+then surfaced by the Pandera gate as structured failure cases.
 """
 from __future__ import annotations
 
@@ -13,6 +13,15 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import polars as pl
+
+STRING_COLUMNS = ("supplier_id", "supplier_name", "region", "last_audit_date")
+NUMERIC_COLUMNS = {
+    "risk_score": pl.Float64,
+    "latitude": pl.Float64,
+    "longitude": pl.Float64,
+    "annual_spend_usd": pl.Float64,
+}
+INT_COLUMNS = {"tier": pl.Int64}
 
 DEFAULT_SUPPLIER_SCHEMA_OVERRIDES: dict[str, object] = {
     "supplier_id": pl.String,
@@ -26,21 +35,62 @@ DEFAULT_SUPPLIER_SCHEMA_OVERRIDES: dict[str, object] = {
     "last_audit_date": pl.String,
 }
 
+_NULL_LITERALS = ["NULL", "null", "N/A", " ", ""]
+
+
+def _sanitized(lf: pl.LazyFrame, final_dtypes: Mapping[str, object]) -> pl.LazyFrame:
+    present = lf.collect_schema().names()
+
+    trim_exprs = [
+        pl.col(c).str.strip_chars()
+        for c in STRING_COLUMNS
+        if c in present
+    ]
+    null_exprs = [
+        pl.when(pl.col(c).is_in(_NULL_LITERALS))
+        .then(None)
+        .otherwise(pl.col(c))
+        .alias(c)
+        for c in STRING_COLUMNS
+        if c in present
+    ]
+    despace_exprs = [
+        pl.col(c).str.replace_all(r"\s+", "").alias(c)
+        for c in ("supplier_id", "region", "last_audit_date")
+        if c in present
+    ]
+    cast_exprs = []
+    for c, dtype in {**NUMERIC_COLUMNS, **INT_COLUMNS}.items():
+        if c in present:
+            cast_exprs.append(
+                pl.col(c)
+                .str.replace_all(r"\s+", "")
+                .cast(dtype, strict=False)
+                .alias(c)
+            )
+    for c, dtype in final_dtypes.items():
+        if c in present and c in STRING_COLUMNS:
+            cast_exprs.append(pl.col(c).cast(dtype, strict=False).alias(c))
+
+    if trim_exprs:
+        lf = lf.with_columns(trim_exprs)
+    if null_exprs:
+        lf = lf.with_columns(null_exprs)
+    if despace_exprs:
+        lf = lf.with_columns(despace_exprs)
+    if cast_exprs:
+        lf = lf.with_columns(cast_exprs)
+    return lf
+
 
 def load_supplier_csv(
     source: bytes | bytearray | io.BytesIO | str | Path,
     *,
     schema_overrides: Mapping[str, object] | None = None,
     infer_schema_length: int = 10_000,
-    null_values: Iterable[str] = ("", "NULL", "null", "N/A"),
+    null_values: Iterable[str] = (" ", "NULL", "null", "N/A"),
 ) -> pl.LazyFrame:
-    """
-    Convert an uploaded buffer/path into a Polars LazyFrame without materializing
-    the full dataset into Python memory.
-
-    Note: "NA" is intentionally excluded from default null_values because it is a
-    valid region enum (North America) in the SupplierRecord schema.
-    """
+    """Scan an uploaded buffer/path lazily and return a sanitized, typed LazyFrame."""
     if isinstance(source, (bytes, bytearray)):
         source = io.BytesIO(bytes(source))
 
@@ -50,15 +100,15 @@ def load_supplier_csv(
         except Exception:
             pass
 
-    overrides = {
+    final_dtypes = {
         **DEFAULT_SUPPLIER_SCHEMA_OVERRIDES,
         **(schema_overrides or {}),
     }
 
-    scan_kwargs: dict[str, Any] = {
-        "schema_overrides": overrides,
-        "infer_schema_length": infer_schema_length,
-        "null_values": list(null_values),
-    }
-
-    return pl.scan_csv(source, **scan_kwargs)
+    lf = pl.scan_csv(
+        source,
+        schema_overrides={c: pl.String for c in final_dtypes},
+        infer_schema_length=infer_schema_length,
+        null_values="",
+    )
+    return _sanitized(lf, final_dtypes)

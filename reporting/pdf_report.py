@@ -1,8 +1,9 @@
 """
 Board-grade executive PDF (FPDF2 2.8+).
 
-Dark cover band, severity-colored KPI boxes, zebra risk table with colored
-risk cells, narrative blocks, confidential footer. No deprecated ln=True.
+Correctives: transliterated unicode safety, full-width right-aligned footer
+(no fixed-cell spacing artifacts), page-break guards inside the zebra table,
+severity-first narrative ordering, and optional scenario parameter metadata.
 """
 from __future__ import annotations
 
@@ -23,15 +24,30 @@ _INK = (15, 23, 42)
 _MUTED = (100, 116, 139)
 _LINE = (226, 232, 240)
 _ZEBRA = (248, 250, 252)
+_SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+
+_TRANS = str.maketrans({
+    "—": "-", "–": "-", "’": "'", "‘": "'", "“": '"', "”": '"',
+    "≥": ">=", "≤": "<=", "·": "-", "…": "...", "→": "->",
+    "€": "EUR ", "£": "GBP ", "₹": "Rs ",
+})
 
 
 def _safe(value: object) -> str:
-    text = unicodedata.normalize("NFKD", str(value))
+    text = unicodedata.normalize("NFKD", str(value).translate(_TRANS))
     return text.encode("latin-1", "ignore").decode("latin-1")
 
 
 def _block(value: object, width: int = 88) -> str:
     return textwrap.fill(_safe(value), width=width, break_long_words=True, break_on_hyphens=True)
+
+
+def _severity_sorted(narratives: dict[str, RiskNarrative], limit: int) -> list[tuple[str, RiskNarrative]]:
+    ordered = sorted(
+        narratives.items(),
+        key=lambda item: (_SEVERITY_ORDER.get(item[1].overall_risk.value, 9), -item[1].confidence),
+    )
+    return ordered[:limit]
 
 
 class _PDFReport(FPDF):
@@ -66,8 +82,7 @@ class _PDFReport(FPDF):
         self.set_font("Helvetica", "", 8)
         self.set_text_color(*_MUTED)
         self.cell(110, 6, "CONFIDENTIAL - INTERNAL DISTRIBUTION ONLY")
-        self.set_x(self.w - 12 - 40)
-        self.cell(40, 6, f"Page {self.page_no()}/{{nb}}", align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.cell(0, 6, f"Page {self.page_no()}/{{nb}}", align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
 
 def _section(pdf: FPDF, title: str) -> None:
@@ -109,6 +124,7 @@ def render_pdf_report(
     scored_df: pl.DataFrame,
     narratives: dict[str, RiskNarrative],
     scenario_name: str = "Default",
+    scenario_config: object | None = None,
 ) -> bytes:
     pdf = _PDFReport()
     pdf.alias_nb_pages()
@@ -117,7 +133,6 @@ def render_pdf_report(
 
     effective_width = pdf.w - pdf.l_margin - pdf.r_margin
 
-    # Scenario meta line
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(*_INK)
     pdf.cell(0, 8, _safe(f"Scenario: {scenario_name}"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -125,6 +140,14 @@ def render_pdf_report(
     pdf.set_text_color(*_MUTED)
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     pdf.cell(0, 6, _safe(f"Generated {generated}  ·  Board-ready analysis"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    if scenario_config is not None:
+        meta = (
+            f"Weighting: {getattr(scenario_config, 'weighting', 'balanced')}  ·  "
+            f"Risk window: {getattr(scenario_config, 'min_risk_threshold', 0.0):.2f}-"
+            f"{getattr(scenario_config, 'max_risk_threshold', 1.0):.2f}  ·  "
+            f"Regions: {', '.join(getattr(scenario_config, 'regions', []))}"
+        )
+        pdf.cell(0, 6, _safe(meta), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(4)
 
     total_suppliers = scored_df.height
@@ -176,6 +199,10 @@ def render_pdf_report(
     )
 
     for row_idx, row in enumerate(top_10.iter_rows(named=True)):
+        if pdf.get_y() > pdf.h - 32:
+            pdf.add_page()
+            pdf.set_font("Helvetica", "", 8)
+
         pdf.set_x(pdf.l_margin)
         if row_idx % 2 == 0:
             pdf.set_fill_color(*_ZEBRA)
@@ -198,10 +225,7 @@ def render_pdf_report(
             new_x = XPos.LMARGIN if idx == len(values) - 1 else XPos.RIGHT
             new_y = YPos.NEXT if idx == len(values) - 1 else YPos.TOP
 
-            if idx == 2:
-                pdf.set_text_color(*band_rgb)
-                pdf.set_font("Helvetica", "B", 8)
-            elif idx == 3:
+            if idx in (2, 3):
                 pdf.set_text_color(*band_rgb)
                 pdf.set_font("Helvetica", "B", 8)
             else:
@@ -210,7 +234,7 @@ def render_pdf_report(
 
             pdf.cell(widths[idx], 7, _safe(value), border=0, fill=True, new_x=new_x, new_y=new_y)
 
-    pdf.ln(8)
+        pdf.ln(8)
 
     _section(pdf, "AI Risk Narratives (Top-5)")
 
@@ -219,9 +243,7 @@ def render_pdf_report(
         pdf.set_text_color(*_MUTED)
         pdf.cell(0, 7, "No narratives available for this scenario.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     else:
-        top_narratives = sorted(narratives.items(), key=lambda item: item[1].confidence, reverse=True)[:5]
-
-        for supplier_id, narrative in top_narratives:
+        for supplier_id, narrative in _severity_sorted(narratives, 5):
             if pdf.get_y() > pdf.h - 55:
                 pdf.add_page()
 

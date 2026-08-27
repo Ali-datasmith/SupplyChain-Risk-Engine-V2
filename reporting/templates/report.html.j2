@@ -6,48 +6,53 @@
 <title>Executive Risk Briefing — {{ scenario_name }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    :root {
-        --bg: #F8FAFC; --surface: #FFFFFF; --border: #E2E8F0;
-        --text: #0F172A; --text-2: #475569; --text-3: #64748B;
-        --accent: #0891B2; --accent-2: #6D5BD0;
-    }
-    * { box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, sans-serif; max-width: 1080px; margin: 0 auto; padding: 0 32px 48px; background: var(--bg); color: var(--text); line-height: 1.55; -webkit-font-smoothing: antialiased; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-    .topbar { height: 5px; margin: 0 -32px 28px; background: linear-gradient(90deg, #06B6D4 0%, #6D5BD0 55%, #F59E0B 100%); }
-    .brandline { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-    .brand { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text); }
-    .brand .mark { color: var(--accent); }
-    .docmeta { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
-    h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; margin: 22px 0 2px; }
-    .subtitle { color: var(--text-2); font-size: 14px; margin-bottom: 26px; }
-    h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin: 38px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-    h2::before { content: ""; display: inline-block; width: 22px; height: 3px; background: var(--accent); margin-right: 10px; vertical-align: middle; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: 10px; padding: 18px 18px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
-    .kpi-card.warn { border-top-color: #F97316; } .kpi-card.crit { border-top-color: #EF4444; } .kpi-card.alt { border-top-color: var(--accent-2); }
-    .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
-    .kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3); }
-    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 13px; }
-    th { background: #0F172A; color: #F8FAFC; padding: 11px 14px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-    td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-    tr:nth-child(even) td { background: #F8FAFC; }
-    tr:last-child td { border-bottom: none; }
-    td.num { font-family: 'JetBrains Mono', monospace; text-align: right; font-weight: 600; }
-    .badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 999px; color: #fff; }
-    .narrative-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent-2); border-radius: 10px; padding: 18px 20px; margin: 12px 0; page-break-inside: avoid; }
-    .narrative-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
-    .narrative-field { margin: 5px 0; font-size: 13px; color: var(--text-2); }
-    .narrative-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); display: inline-block; min-width: 120px; }
-    .footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); display: flex; justify-content: space-between; }
-    @media print { body { padding: 0 24px 24px; } .topbar { margin: 0 -24px 24px; } .narrative-card, table, .kpi-card { page-break-inside: avoid; } }
+:root {
+  --bg: #F8FAFC; --surface: #FFFFFF; --border: #E2E8F0;
+  --text: #0F172A; --text-2: #475569; --text-3: #64748B;
+  --accent: {{ accent }}; --accent-2: {{ accent_2 }};
+  --risk-low: {{ risk_colors['LOW'] }}; --risk-medium: {{ risk_colors['MEDIUM'] }};
+  --risk-high: {{ risk_colors['HIGH'] }}; --risk-critical: {{ risk_colors['CRITICAL'] }};
+}
+* { box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, sans-serif; max-width: 1080px; margin: 0 auto; padding: 0 32px 48px; background: var(--bg); color: var(--text); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.topbar { height: 5px; margin: 0 -32px 28px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 55%, var(--risk-medium) 100%); }
+.brandline { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.brand { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text); }
+.brand .mark { color: #0891B2; }
+.docmeta { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; margin: 22px 0 2px; }
+.subtitle { color: var(--text-2); font-size: 14px; margin-bottom: 26px; }
+h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin: 38px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+h2::before { content: ""; display: inline-block; width: 22px; height: 3px; background: #0891B2; margin-right: 10px; vertical-align: middle; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid #0891B2; border-radius: 10px; padding: 18px 18px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
+.kpi-card.warn { border-top-color: var(--risk-high); }
+.kpi-card.crit { border-top-color: var(--risk-critical); }
+.kpi-card.alt { border-top-color: var(--accent-2); }
+.kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
+.kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3); }
+.table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #0F172A; color: #F8FAFC; padding: 11px 14px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+tr:nth-child(even) td { background: #F8FAFC; }
+tr:last-child td { border-bottom: none; }
+td.num { font-family: 'JetBrains Mono', monospace; text-align: right; font-weight: 600; }
+.badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 999px; }
+.narrative-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent-2); border-radius: 10px; padding: 18px 20px; margin: 12px 0; page-break-inside: avoid; }
+.narrative-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.narrative-field { margin: 5px 0; font-size: 13px; color: var(--text-2); }
+.narrative-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); display: inline-block; min-width: 120px; }
+.footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); display: flex; justify-content: space-between; }
+@media print { body { padding: 0 24px 24px; } .topbar { margin: 0 -24px 24px; } .narrative-card, .table-wrap, .kpi-card { page-break-inside: avoid; } }
 </style>
 </head>
 <body>
 <div class="topbar"></div>
 <div class="brandline">
-    <div class="brand"><span class="mark">◈</span> SUPPLY CHAIN RISK ENGINE</div>
-    <div class="docmeta">Executive Briefing · V2.1</div>
+  <div class="brand"><span class="mark">◆</span> SUPPLY CHAIN RISK ENGINE</div>
+  <div class="docmeta">Executive Briefing · V2.1</div>
 </div>
 
 <h1>{{ scenario_name }}</h1>
@@ -55,49 +60,51 @@
 
 <h2>Portfolio Risk Metrics</h2>
 <div class="kpi-grid">
-    <div class="kpi-card"><div class="kpi-value">{{ "{:,}".format(total_suppliers) }}</div><div class="kpi-label">Total Entities</div></div>
-    <div class="kpi-card alt"><div class="kpi-value">{{ "%.3f"|format(avg_risk) }}</div><div class="kpi-label">Portfolio Risk Index</div></div>
-    <div class="kpi-card warn"><div class="kpi-value">{{ "{:,}".format(high_risk_count) }}</div><div class="kpi-label">High Exposure (≥0.70)</div></div>
-    <div class="kpi-card crit"><div class="kpi-value">{{ "{:,}".format(critical_count) }}</div><div class="kpi-label">Critical Exposure (≥0.85)</div></div>
+  <div class="kpi-card"><div class="kpi-value">{{ "{:,}".format(total_suppliers) }}</div><div class="kpi-label">Total Entities</div></div>
+  <div class="kpi-card alt"><div class="kpi-value">{{ "%.3f"|format(avg_risk) }}</div><div class="kpi-label">Portfolio Risk Index</div></div>
+  <div class="kpi-card warn"><div class="kpi-value">{{ "{:,}".format(high_risk_count) }}</div><div class="kpi-label">High Exposure (≥0.70)</div></div>
+  <div class="kpi-card crit"><div class="kpi-value">{{ "{:,}".format(critical_count) }}</div><div class="kpi-label">Critical Exposure (≥0.85)</div></div>
 </div>
 
 <h2>Regional Risk Concentration</h2>
 {{ plotly_html|safe }}
 
 <h2>Top-10 Highest Risk Entities</h2>
+<div class="table-wrap">
 <table>
-    <thead>
-        <tr><th>Entity ID</th><th>Name</th><th style="text-align:right;">Risk Index</th><th>Band</th><th>Region</th></tr>
-    </thead>
-    <tbody>
-        {% for s in top_10 %}
-        <tr>
-            <td class="mono">{{ s.supplier_id }}</td>
-            <td>{{ s.supplier_name }}</td>
-            <td class="num">{{ "%.3f"|format(s.composite_risk) }}</td>
-            <td><span class="badge" style="background: {{ risk_colors[s.band] }};">{{ s.band }}</span></td>
-            <td>{{ s.region }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
+  <thead>
+    <tr><th>Entity ID</th><th>Name</th><th style="text-align:right;">Risk Index</th><th>Band</th><th>Region</th></tr>
+  </thead>
+  <tbody>
+{% for s in top_10 %}
+    <tr>
+      <td class="mono">{{ s.supplier_id }}</td>
+      <td>{{ s.supplier_name }}</td>
+      <td class="num">{{ "%.3f"|format(s.composite_risk) }}</td>
+      <td><span class="badge" style="background: {{ risk_colors[s.band] }}; color: {{ badge_text[s.band] }};">{{ s.band }}</span></td>
+      <td>{{ s.region }}</td>
+    </tr>
+{% endfor %}
+  </tbody>
 </table>
+</div>
 
 {% if top_narratives %}
 <h2>AI Risk Narratives — Top 5</h2>
 {% for supplier_id, narrative in top_narratives %}
 <div class="narrative-card" style="border-left-color: {{ risk_colors[narrative.overall_risk.value] }};">
-    <div class="narrative-title">{{ narrative.supplier_name }} <span class="mono" style="color: var(--text-3); font-weight: 500; font-size: 12px;">// {{ supplier_id }}</span></div>
-    <div class="narrative-field"><span class="narrative-label">Overall Risk</span> <span class="badge" style="background: {{ risk_colors[narrative.overall_risk.value] }};">{{ narrative.overall_risk.value }}</span></div>
-    <div class="narrative-field"><span class="narrative-label">Key Risks</span> {{ narrative.key_risks|join(', ') }}</div>
-    <div class="narrative-field"><span class="narrative-label">Recommendation</span> {{ narrative.recommendation }}</div>
-    <div class="narrative-field"><span class="narrative-label">Confidence</span> <span class="mono">{{ "%.2f"|format(narrative.confidence) }}</span></div>
+  <div class="narrative-title">{{ narrative.supplier_name }} <span class="mono" style="color: var(--text-3); font-weight: 500; font-size: 12px;">// {{ supplier_id }}</span></div>
+  <div class="narrative-field"><span class="narrative-label">Overall Risk</span> <span class="badge" style="background: {{ risk_colors[narrative.overall_risk.value] }}; color: {{ badge_text[narrative.overall_risk.value] }};">{{ narrative.overall_risk.value }}</span></div>
+  <div class="narrative-field"><span class="narrative-label">Key Risks</span> {{ narrative.key_risks|join(', ') }}</div>
+  <div class="narrative-field"><span class="narrative-label">Recommendation</span> {{ narrative.recommendation }}</div>
+  <div class="narrative-field"><span class="narrative-label">Confidence</span> <span class="mono">{{ "%.2f"|format(narrative.confidence) }}</span></div>
 </div>
 {% endfor %}
 {% endif %}
 
 <div class="footer">
-    <span>Confidential — Internal Distribution Only</span>
-    <span>Supply Chain Risk Engine V2.1</span>
+  <span>Confidential — Internal Distribution Only</span>
+  <span>Supply Chain Risk Engine V2.1</span>
 </div>
 </body>
 </html>

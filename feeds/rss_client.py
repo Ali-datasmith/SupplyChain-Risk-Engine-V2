@@ -3,10 +3,12 @@ RSS intelligence client.
 
 All outbound HTTP goes through resilience.http_client (cached client + shared
 tenacity policy). feedparser only parses bytes fetched by httpx.
+Sources are fetched concurrently (thread pool) to bound worst-case latency.
 """
 from __future__ import annotations
 
 from calendar import timegm
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import feedparser
@@ -43,54 +45,47 @@ def _parse_published(entry) -> datetime:
     return datetime.fromtimestamp(0, tz=timezone.utc)
 
 
+def _fetch_one(name: str) -> list[NewsItem]:
+    url = RSS_SOURCES[name]
+    try:
+        payload = _fetch_feed(url)
+    except Exception as exc:
+        logger.bind(source="rss").warning(f"Feed fetch failed for {name}: {exc}")
+        return []
+
+    parsed = feedparser.parse(payload)
+    items = [
+        NewsItem(
+            title=str(entry.get("title", "")),
+            url=str(entry.get("link", "")),
+            source=name,
+            published=_parse_published(entry),
+            summary=entry.get("summary") or None,
+        )
+        for entry in parsed.entries
+    ]
+    logger.bind(source="rss").info(f"Fetched {len(parsed.entries)} entries from {name}")
+    return items
+
+
 def fetch_news(
     keywords: str | None = None,
     sources: list[str] | None = None,
 ) -> list[NewsItem]:
-    """
-    Fetch, filter, and sort news items from the configured RSS sources.
-
-    Keywords are comma-separated and matched case-insensitively against
-    title + summary. Returns items sorted by published desc.
-    """
+    """Fetch, filter, and sort news items from the configured RSS sources."""
     selected = sources or list(RSS_SOURCES.keys())
     keyword_list = [k.strip().lower() for k in (keywords or "").split(",") if k.strip()]
 
     items: list[NewsItem] = []
+    with ThreadPoolExecutor(max_workers=min(8, max(1, len(selected)))) as pool:
+        for batch in pool.map(_fetch_one, selected):
+            items.extend(batch)
 
-    for name in selected:
-        url = RSS_SOURCES[name]
-
-        try:
-            payload = _fetch_feed(url)
-        except Exception as exc:
-            logger.bind(source="rss").warning(f"Feed fetch failed for {name}: {exc}")
-            continue
-
-        parsed = feedparser.parse(payload)
-
-        for entry in parsed.entries:
-            title = str(entry.get("title", ""))
-            summary = entry.get("summary") or None
-
-            if keyword_list and not any(
-                k in f"{title} {summary or ''}".lower() for k in keyword_list
-            ):
-                continue
-
-            items.append(
-                NewsItem(
-                    title=title,
-                    url=str(entry.get("link", "")),
-                    source=name,
-                    published=_parse_published(entry),
-                    summary=summary,
-                )
-            )
-
-        logger.bind(source="rss").info(
-            f"Fetched {len(parsed.entries)} entries from {name}"
-        )
+    if keyword_list:
+        items = [
+            i for i in items
+            if any(k in f"{i.title} {i.summary or ''}".lower() for k in keyword_list)
+        ]
 
     items.sort(key=lambda item: item.published, reverse=True)
     return items

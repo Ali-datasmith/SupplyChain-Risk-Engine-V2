@@ -1,7 +1,6 @@
 """Supply Chain Risk Engine V2 — premium B2B design system."""
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -23,16 +22,16 @@ DESIGN_TOKENS: dict[str, str] = {
 
 RISK_COLORS: dict[str, str] = {
     "LOW": "#34D399",
-    "MEDIUM": "#FBBF24",
+    "MEDIUM": "#FACC15",
     "HIGH": "#FB923C",
-    "CRITICAL": "#F87171",
+    "CRITICAL": "#F43F5E",
 }
 
 RISK_RGB: dict[str, tuple[int, int, int]] = {
     "LOW": (52, 211, 153),
-    "MEDIUM": (251, 191, 36),
+    "MEDIUM": (250, 204, 21),
     "HIGH": (251, 146, 60),
-    "CRITICAL": (248, 113, 113),
+    "CRITICAL": (244, 63, 94),
 }
 
 def risk_band(value: float) -> str:
@@ -80,34 +79,36 @@ def inject_theme_css() -> str:
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* --- BASE LAYOUT --- */
-html, body, .stApp {
-    background-color: #0B1220 !important;
+/* --- LAYERED COMMAND-CENTER BACKGROUND --- */
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(1100px 560px at 88% -12%, rgba(129,140,248,0.10), transparent 60%),
+        radial-gradient(950px 520px at -8% -4%, rgba(34,211,238,0.09), transparent 55%),
+        repeating-linear-gradient(0deg, rgba(148,163,184,0.035) 0 1px, transparent 1px 44px),
+        repeating-linear-gradient(90deg, rgba(148,163,184,0.035) 0 1px, transparent 1px 44px),
+        #0B1220 !important;
     color: #E6EDF6;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
-.main .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 4rem !important;
-    max-width: 1600px !important;
-}
+.main .block-container { padding-top: 1.5rem !important; padding-bottom: 4rem !important; max-width: 1600px !important; }
+header[data-testid="stHeader"] { background: transparent !important; }
 h1 { font-weight: 800 !important; letter-spacing: -0.02em !important; color: #E6EDF6 !important; }
-h2 { font-weight: 700 !important; letter-spacing: -0.01em !important; color: #E6EDF6 !important; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+h2 { font-weight: 700 !important; color: #E6EDF6 !important; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
 h3 { font-weight: 600 !important; color: #E6EDF6 !important; }
 p, span, div, label { color: #E6EDF6; }
 hr { border-color: rgba(255,255,255,0.08) !important; margin: 1.5rem 0 !important; }
 
-/* --- GLASSMORPHISM CARD (OBS-CARD) --- */
+/* --- GLASS CARDS / METRICS --- */
 .obs-card, .glass-card, [data-testid="stMetric"] {
     background: rgba(17, 28, 48, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(30, 42, 68, 0.8);
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px 22px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -122,68 +123,49 @@ hr { border-color: rgba(255,255,255,0.08) !important; margin: 1.5rem 0 !importan
     box-shadow: 0 8px 32px 0 rgba(34, 211, 238, 0.15);
     transform: translateY(-2px);
 }
+[data-testid="stMetricLabel"] { color: #94A3B8 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
+[data-testid="stMetricValue"] { color: #E6EDF6 !important; font-weight: 800 !important; font-size: 30px !important; }
+[data-testid="stMetricDelta"] { font-family: 'JetBrains Mono', monospace !important; font-size: 12px !important; }
 
-/* --- NATIVE METRICS OVERRIDE --- */
-[data-testid="stMetricLabel"] {
-    color: #94A3B8 !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-}
-[data-testid="stMetricValue"] {
-    color: #E6EDF6 !important;
-    font-weight: 800 !important;
-    font-size: 32px !important;
-}
-[data-testid="stMetricDelta"] {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 13px !important;
-}
-
-/* --- CUSTOM KPI --- */
 .obs-kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; margin-bottom: 8px; }
 .obs-kpi-value { font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 800; color: #E6EDF6; line-height: 1; margin-bottom: 12px; }
 .obs-kpi-delta { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
 .obs-kpi-delta.up { background: rgba(52, 211, 153, 0.15); color: #34D399; }
-.obs-kpi-delta.down { background: rgba(248, 113, 113, 0.15); color: #F87171; }
+.obs-kpi-delta.down { background: rgba(244, 63, 94, 0.15); color: #F43F5E; }
 .obs-kpi-delta.neutral { background: rgba(148, 163, 184, 0.12); color: #94A3B8; }
 
-/* --- TABS --- */
+/* --- TABS / SIDEBAR / TABLES --- */
 .stTabs [data-baseweb="tab-list"] { gap: 8px; background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-.stTabs [data-baseweb="tab"] { background: rgba(17, 28, 48, 0.4); color: #94A3B8; padding: 10px 24px; border-radius: 8px 8px 0 0; font-family: 'Inter', sans-serif; font-weight: 600; border: 1px solid transparent; }
+.stTabs [data-baseweb="tab"] { background: rgba(17, 28, 48, 0.4); color: #94A3B8; padding: 10px 24px; border-radius: 8px 8px 0 0; font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; border: 1px solid transparent; }
 .stTabs [aria-selected="true"] { background: rgba(34, 211, 238, 0.1) !important; color: #22D3EE !important; border: 1px solid rgba(34, 211, 238, 0.3) !important; border-bottom: 1px solid #0B1220 !important; }
-
-/* --- SIDEBAR --- */
-section[data-testid="stSidebar"] { background: rgba(11, 18, 32, 0.8) !important; backdrop-filter: blur(20px); border-right: 1px solid rgba(255, 255, 255, 0.05) !important; }
-
-/* --- DATA TABLES --- */
+section[data-testid="stSidebar"] { background: rgba(11, 18, 32, 0.85) !important; backdrop-filter: blur(20px); border-right: 1px solid rgba(255, 255, 255, 0.05) !important; }
 .stDataFrame { border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 
-/* --- BUTTONS & INPUTS --- */
+/* --- CONTROLS (on-brand) --- */
 .stButton > button { background: linear-gradient(135deg, #22D3EE 0%, #818CF8 100%); color: white; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 10px 24px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2); }
 .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(34, 211, 238, 0.4); }
 .stButton > button[kind="secondary"] { background: rgba(17, 28, 48, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: none; }
 .stTextInput > div > div, .stSelectbox > div > div, .stMultiSelect > div > div, .stTextArea > div > div { background: rgba(11, 18, 32, 0.6) !important; border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 8px !important; color: #E6EDF6 !important; }
+span[data-baseweb="tag"] { background: rgba(34, 211, 238, 0.12) !important; border: 1px solid rgba(34, 211, 238, 0.35) !important; color: #22D3EE !important; border-radius: 6px !important; }
+[data-testid="stSlider"] [role="slider"] { border-color: #22D3EE !important; background: #22D3EE !important; }
 .stFileUploader { background: rgba(11, 18, 32, 0.4) !important; border: 2px dashed rgba(34, 211, 238, 0.4) !important; border-radius: 16px !important; }
-
-/* --- EXPANDERS --- */
 .stExpander { background: rgba(17, 28, 48, 0.4) !important; border: 1px solid rgba(30, 42, 68, 0.8) !important; border-radius: 16px !important; backdrop-filter: blur(8px); }
 
-/* --- REQUIRED TEST CLASSES (Visuals mapped to test expectations) --- */
+/* --- BRAND / OPS / PILLS / MICRO --- */
 .obs-micro { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: #64748B; display: block; margin-bottom: 12px; }
 .obs-empty { border: 1px dashed rgba(30, 42, 68, 0.8); border-radius: 16px; padding: 44px 24px; text-align: center; color: #64748B; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; background: rgba(17, 28, 48, 0.4); }
-.obs-brand { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 0 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 800; color: #E6EDF6; }
-.obs-ops { display: flex; flex-wrap: wrap; gap: 22px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748B; }
-.obs-pill { display: inline-flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 5px 11px; border-radius: 6px; border: 1px solid rgba(30, 42, 68, 0.8); color: #94A3B8; margin-right: 6px; }
+.obs-brand { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 0 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #E6EDF6; }
+.obs-brand .mark { color: #22D3EE; text-shadow: 0 0 14px rgba(34, 211, 238, 0.55); }
+.obs-ops { display: flex; flex-wrap: wrap; gap: 22px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #64748B; }
+.obs-ops b { color: #94A3B8; font-weight: 700; }
+.obs-ops .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22D3EE; margin-right: 7px; vertical-align: middle; box-shadow: 0 0 8px #22D3EE; }
+.obs-pill { display: inline-flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 11px; border-radius: 6px; border: 1px solid rgba(30, 42, 68, 0.8); color: #94A3B8; margin-right: 6px; }
 .obs-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748B; }
 .obs-pill.low { background: rgba(52, 211, 153, 0.15); color: #34D399; border-color: rgba(52, 211, 153, 0.4); }
-.obs-pill.medium { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border-color: rgba(251, 191, 36, 0.4); }
+.obs-pill.medium { background: rgba(250, 204, 21, 0.15); color: #FACC15; border-color: rgba(250, 204, 21, 0.4); }
 .obs-pill.high { background: rgba(251, 146, 60, 0.15); color: #FB923C; border-color: rgba(251, 146, 60, 0.4); }
-.obs-pill.critical { background: rgba(248, 113, 113, 0.15); color: #F87171; border-color: rgba(248, 113, 113, 0.4); box-shadow: 0 0 12px rgba(248, 113, 113, 0.3); }
+.obs-pill.critical { background: rgba(244, 63, 94, 0.15); color: #F43F5E; border-color: rgba(244, 63, 94, 0.4); box-shadow: 0 0 12px rgba(244, 63, 94, 0.35); }
 
-/* --- SCROLLBARS --- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #0B1220; }
 ::-webkit-scrollbar-thumb { background: #1E2A44; border-radius: 4px; }
@@ -213,21 +195,30 @@ def status_pill(level: Any) -> str:
     cls = key.lower() if key in ("LOW", "MEDIUM", "HIGH", "CRITICAL") else ""
     return f'<span class="obs-pill {cls}"><span class="dot"></span>{key}</span>'
 
+def legend_html(counts: dict[str, int] | None = None) -> str:
+    parts = []
+    for band in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
+        n = (counts or {}).get(band)
+        suffix = f" · {n:,}" if n is not None else ""
+        parts.append(f'<span class="obs-pill {band.lower()}"><span class="dot"></span>{band}{suffix}</span>')
+    return '<div style="margin:10px 0 4px;">' + "".join(parts) + "</div>"
+
 def brand_bar() -> str:
     return (
         '<div class="obs-brand">'
-        '<span class="obs-brand-word"><span class="mark">◆</span> Supply Chain Risk Engine V2</span>'
+        '<span><span class="mark">◆</span> Supply Chain Risk Engine V2</span>'
         '<span class="obs-micro" style="margin:0;">Enterprise Edition</span>'
         '</div>'
     )
 
-def ops_strip(*, env: str = "PROD", version: str = "V2.1", now: datetime | None = None) -> str:
+def ops_strip(*, env: str = "PROD", version: str = "V2.1", now: datetime | None = None, status: str = "OPERATIONAL") -> str:
     ts = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    color = "#FACC15" if status == "DEGRADED" else "#34D399"
     return (
         '<div class="obs-ops">'
         f'<span><span class="dot"></span>ENV <b>{env}</b></span>'
         f'<span>BUILD <b>{version}</b></span>'
         f'<span>SYNC <b>{ts}</b></span>'
-        '<span>STATUS <b style="color:#34D399;">OPERATIONAL</b></span>'
+        f'<span>STATUS <b style="color:{color};">{status}</b></span>'
         '</div>'
     )

@@ -3,7 +3,8 @@ Shared resilience layer.
 
 - httpx.Client singleton with connection-level retries (HTTPTransport).
 - tenacity policy for HTTP-status retries (429/502/503).
-- Categorized error classification ported from multi-ai-research-digest.
+- Categorized error classification: typed HTTP status checks take precedence
+  over substring heuristics to avoid misclassification.
 """
 from __future__ import annotations
 
@@ -34,7 +35,6 @@ def _is_retryable_http_error(exc: BaseException) -> bool:
     return False
 
 
-# Test-speed bounds (min=0.01, max=0.05) prevent CI/test suites from sleeping.
 http_retry = retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=0.1, min=0.01, max=0.05),
@@ -44,14 +44,17 @@ http_retry = retry(
 
 
 def classify_error(exc: BaseException) -> str:
-    """
-    Categorized error mapping ported from multi-ai-research-digest.
-    Categories: rate_limit, timeout, schema, auth, fallback.
-    """
-    msg = str(exc).lower()
+    """Categorized error mapping. Categories: rate_limit, timeout, schema, auth, fallback."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code == 429:
+            return "rate_limit"
+        if code in (401, 403):
+            return "auth"
+        if code in (502, 503, 504):
+            return "timeout"
 
-    if "401" in msg or "403" in msg or "auth" in msg or "api_key" in msg:
-        return "auth"
+    msg = str(exc).lower()
 
     if "429" in msg or "quota" in msg or "rate_limit" in msg:
         return "rate_limit"
@@ -59,14 +62,10 @@ def classify_error(exc: BaseException) -> str:
     if "504" in msg or "timeout" in msg or "deadline" in msg:
         return "timeout"
 
+    if "401" in msg or "403" in msg or "auth" in msg or "api_key" in msg:
+        return "auth"
+
     if "schema" in msg or "validation" in msg or "pydantic" in msg or "pydantic_core" in msg:
         return "schema"
-
-    if isinstance(exc, httpx.HTTPStatusError):
-        code = exc.response.status_code
-        if code == 429:
-            return "rate_limit"
-        if code in (502, 503, 504):
-            return "timeout"
 
     return "fallback"

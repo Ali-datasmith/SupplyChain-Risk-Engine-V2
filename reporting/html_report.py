@@ -1,5 +1,9 @@
 """
 Jinja2 + Plotly interactive HTML report — modern executive light design.
+
+Correctives: fully self-contained Plotly bundle (offline boardrooms), theme
+tokens injected as CSS variables, per-band badge text contrast, and
+severity-first narrative ordering.
 """
 from __future__ import annotations
 
@@ -11,9 +15,18 @@ import polars as pl
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from schemas.narrative_schema import RiskNarrative
-from theme import RISK_COLORS, risk_band
+from theme import DESIGN_TOKENS, RISK_COLORS, risk_band
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
+
+_SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+
+BADGE_TEXT = {
+    "LOW": "#0B1220",
+    "MEDIUM": "#0B1220",
+    "HIGH": "#0B1220",
+    "CRITICAL": "#FFFFFF",
+}
 
 _EXEC_PLOTLY = {
     "paper_bgcolor": "rgba(0,0,0,0)",
@@ -80,7 +93,7 @@ def render_html_report(
             go.Bar(
                 x=region_data["region"].to_list() if region_data.height > 0 else [],
                 y=region_data["avg_risk"].to_list() if region_data.height > 0 else [],
-                marker_color=bar_colors or ["#2563EB"],
+                marker_color=bar_colors or [DESIGN_TOKENS["accent"]],
                 marker_line_width=0,
             )
         ]
@@ -91,9 +104,12 @@ def render_html_report(
         yaxis_title="Average Composite Risk",
         **_EXEC_PLOTLY,
     )
-    plotly_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+    plotly_html = fig.to_html(full_html=False, include_plotlyjs=True)
 
-    top_narratives = sorted(narratives.items(), key=lambda item: item[1].confidence, reverse=True)[:5]
+    top_narratives = sorted(
+        narratives.items(),
+        key=lambda item: (_SEVERITY_ORDER.get(item[1].overall_risk.value, 9), -item[1].confidence),
+    )[:5]
 
     return template.render(
         scenario_name=scenario_name,
@@ -106,4 +122,7 @@ def render_html_report(
         plotly_html=plotly_html,
         top_narratives=top_narratives,
         risk_colors=RISK_COLORS,
+        badge_text=BADGE_TEXT,
+        accent=DESIGN_TOKENS["accent"],
+        accent_2=DESIGN_TOKENS["accent_2"],
     )

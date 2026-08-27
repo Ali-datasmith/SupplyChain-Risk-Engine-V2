@@ -1,9 +1,8 @@
 """
 AI narrative generation with 10k-token batching and shared resilience.
 
-2026 rules enforced:
-- NO manual JSON parsing on model output. Consume response.parsed directly.
-- NO manual retry logic. Reuse resilience.http_client.http_retry.
+Attribution: prefer the model-echoed supplier_id; fall back to name mapping
+only when the id is absent or unknown (legacy/mock responses).
 """
 from __future__ import annotations
 
@@ -25,9 +24,8 @@ def _estimate_tokens(text: str) -> int:
 
 
 def _chunk_rows(rows: list[dict], max_tokens: int = MAX_INPUT_TOKENS) -> list[list[dict]]:
-    """Split supplier rows into batches under the 10k input token budget."""
     chunks: list[list[dict]] = []
-    current_chunk: list[dict] = []
+    current_chunk: list[list[dict]] = []
     current_tokens = 0
 
     for row in rows:
@@ -49,12 +47,7 @@ def _chunk_rows(rows: list[dict], max_tokens: int = MAX_INPUT_TOKENS) -> list[li
 
 
 @http_retry
-def _generate_batch(
-    client: object,
-    model_id: str,
-    rows: list[dict],
-) -> list[RiskNarrative]:
-    """Single batch generation wrapped in the shared tenacity retry policy."""
+def _generate_batch(client: object, model_id: str, rows: list[dict]) -> list[RiskNarrative]:
     prompt_text = NARRATIVE_PROMPT_TEMPLATE.format(suppliers=json.dumps(rows))
 
     response = client.models.generate_content(  # type: ignore[attr-defined]
@@ -75,14 +68,11 @@ def _generate_batch(
 
 
 def generate(supplier_rows: list[dict]) -> dict[str, RiskNarrative]:
-    """
-    Generate risk narratives for a list of supplier rows.
-
-    Returns a dict keyed by supplier_id, matching the Streamlit session contract.
-    """
+    """Generate risk narratives keyed by stable supplier_id."""
     client = get_client()
     model_id = get_model_id()
 
+    valid_ids = {row["supplier_id"] for row in supplier_rows if "supplier_id" in row}
     name_to_id = {
         row["supplier_name"]: row["supplier_id"]
         for row in supplier_rows
@@ -90,12 +80,12 @@ def generate(supplier_rows: list[dict]) -> dict[str, RiskNarrative]:
     }
 
     results: dict[str, RiskNarrative] = {}
-    chunks = _chunk_rows(supplier_rows)
-
-    for chunk in chunks:
+    for chunk in _chunk_rows(supplier_rows):
         narratives = _generate_batch(client, model_id, chunk)
         for narrative in narratives:
-            sid = name_to_id.get(narrative.supplier_name, "UNKNOWN")
+            sid = narrative.supplier_id
+            if sid not in valid_ids:
+                sid = name_to_id.get(narrative.supplier_name, "UNKNOWN")
             results[sid] = narrative
 
     return results

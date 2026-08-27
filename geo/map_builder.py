@@ -1,15 +1,10 @@
 """
 GPU-accelerated geospatial rendering via pydeck / deck.gl.
 
-Replaces the legacy Leaflet-based renderer (release-candidate instability on
-Streamlit Cloud) with the native deck.gl stack: 50k+ points, CARTO dark
-basemap, typed tooltips, zero per-point Python DOM objects.
-
-Rendering strategy: embed the self-contained deck.gl HTML document via
-streamlit.components.v1.html — the identical renderer that produces the
-verified Colab output. st.pydeck_chart renders blank on Community Cloud.
-pydeck 0.9.x only materializes the HTML string when a filename is supplied,
-so deck_to_html() writes to a temp file and reads it back.
+Security: all user-supplied strings are HTML-escaped before entering the
+deck.gl tooltip template (stored-XSS vector via uploaded CSVs).
+Readability: marker radius scales with composite risk and layers carry a
+subtle stroke so severity bands separate visually on the dark basemap.
 """
 from __future__ import annotations
 
@@ -23,8 +18,19 @@ from schemas.scenario_schema import ScenarioConfig
 from theme import RISK_RGB
 
 
+def _esc(column: str) -> pl.Expr:
+    """Vectorized HTML-escape for tooltip-safe strings (& first)."""
+    return (
+        pl.col(column)
+        .str.replace_all("&", "&amp;")
+        .str.replace_all("<", "&lt;")
+        .str.replace_all(">", "&gt;")
+        .str.replace_all('"', "&quot;")
+        .str.replace_all("'", "&#39;")
+    )
+
+
 def _risk_rgb_columns(df: pl.DataFrame, risk_col: str) -> pl.DataFrame:
-    """Vectorized severity -> RGBA list column for deck.gl fill colors."""
     crit = RISK_RGB["CRITICAL"]
     high = RISK_RGB["HIGH"]
     med = RISK_RGB["MEDIUM"]
@@ -43,7 +49,7 @@ def _risk_rgb_columns(df: pl.DataFrame, risk_col: str) -> pl.DataFrame:
         _ch(0, {"CRITICAL": crit[0], "HIGH": high[0], "MEDIUM": med[0], "LOW": low[0]}),
         _ch(1, {"CRITICAL": crit[1], "HIGH": high[1], "MEDIUM": med[1], "LOW": low[1]}),
         _ch(2, {"CRITICAL": crit[2], "HIGH": high[2], "MEDIUM": med[2], "LOW": low[2]}),
-        pl.lit(200).alias("_c3"),
+        pl.lit(210).alias("_c3"),
     ).with_columns(pl.concat_list("_c0", "_c1", "_c2", "_c3").alias("risk_rgb"))
 
 
@@ -56,21 +62,29 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
         df = df.head(config.max_map_points)
 
     risk_col = "composite_risk" if "composite_risk" in df.columns else "risk_score"
+    risk = pl.col(risk_col).cast(pl.Float64).fill_null(0.0).fill_nan(0.0)
 
     df = df.with_columns(
-        pl.col(risk_col).cast(pl.Float64).fill_null(0.0).round(3).cast(pl.String).alias("risk_display"),
-        pl.col("supplier_id").cast(pl.String).fill_null("ENTITY").alias("supplier_id"),
-        pl.col("supplier_name").cast(pl.String).fill_null("Unknown Entity").alias("supplier_name")
+        risk.round(3).cast(pl.String).alias("risk_display"),
+        (60_000.0 + risk * 240_000.0).alias("risk_radius"),
+        pl.col("supplier_id").cast(pl.String).fill_null("ENTITY"),
+        pl.col("supplier_name").cast(pl.String).fill_null("Unknown Entity")
         if "supplier_name" in df.columns
         else pl.lit("Unknown Entity").alias("supplier_name"),
-        pl.col("region").cast(pl.String).fill_null("—").alias("region")
+        pl.col("region").cast(pl.String).fill_null("-")
         if "region" in df.columns
-        else pl.lit("—").alias("region"),
+        else pl.lit("-").alias("region"),
     )
     df = _risk_rgb_columns(df, risk_col)
+    df = df.with_columns(
+        _esc("supplier_id").alias("supplier_id"),
+        _esc("supplier_name").alias("supplier_name"),
+        _esc("region").alias("region"),
+    )
 
     data = df.select(
-        ["supplier_id", "supplier_name", "region", "latitude", "longitude", "risk_display", "risk_rgb"]
+        ["supplier_id", "supplier_name", "region", "latitude", "longitude",
+         "risk_display", "risk_rgb", "risk_radius"]
     ).to_dicts()
 
     layer = pdk.Layer(
@@ -79,11 +93,15 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
         id="supplier-risk-layer",
         get_position=["longitude", "latitude"],
         get_fill_color="risk_rgb",
-        get_radius=30_000,
-        radius_min_pixels=4,
-        radius_max_pixels=14,
+        get_radius="risk_radius",
+        radius_min_pixels=5,
+        radius_max_pixels=22,
+        stroked=True,
+        get_line_color=[230, 237, 246, 70],
+        get_line_width=1,
+        line_width_min_pixels=1,
         pickable=True,
-        opacity=0.9,
+        opacity=0.95,
         auto_highlight=True,
     )
 
@@ -123,13 +141,7 @@ def build_map(df: pl.DataFrame | pl.LazyFrame, config: ScenarioConfig) -> pdk.De
 
 
 def deck_to_html(map_obj: pdk.Deck) -> str:
-    """
-    Materialize the standalone deck.gl HTML document.
-
-    pydeck 0.9.x returns None from to_html() unless a filename is given, so we
-    write to a throwaway temp file and read the bytes back. This is the exact
-    document that renders the CARTO-dark scatter map verified in Colab.
-    """
+    """Materialize the standalone deck.gl HTML document via temp file."""
     with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as tmp:
         path = tmp.name
 
@@ -143,12 +155,7 @@ def deck_to_html(map_obj: pdk.Deck) -> str:
 
 
 def render_in_streamlit(map_obj: pdk.Deck, height: int = 680):
-    """
-    Embed the self-contained deck.gl document (CARTO dark + scatter layer)
-    in a Streamlit iframe — the exact renderer verified in Colab. Re-rendered
-    from session state on every rerun, so the map no longer disappears when
-    switching tabs.
-    """
+    """Embed the self-contained deck.gl document in a Streamlit iframe."""
     import streamlit as st
     import streamlit.components.v1 as components
 

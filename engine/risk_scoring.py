@@ -15,7 +15,6 @@ import polars as pl
 
 from schemas.scenario_schema import RiskWeighting, ScenarioConfig
 
-REFERENCE_DATE = date(2026, 1, 1)
 STALENESS_HALF_LIFE_DAYS = 730.0
 
 _COMPONENT_NAMES = (
@@ -83,10 +82,9 @@ def _geopolitical_expression() -> pl.Expr:
 
 
 def _audit_staleness_expression() -> pl.Expr:
+    reference = pl.lit(date.today()).cast(pl.Date)
     audit_date = pl.col("last_audit_date").str.to_date(format="%Y-%m-%d", strict=False)
-    age_days = (
-        pl.lit(REFERENCE_DATE).cast(pl.Date) - audit_date
-    ).dt.total_days()
+    age_days = (reference - audit_date).dt.total_days()
 
     return (
         (age_days / STALENESS_HALF_LIFE_DAYS)
@@ -113,13 +111,7 @@ def score_suppliers(
     *,
     apply_filters: bool = True,
 ) -> pl.DataFrame:
-    """
-    Score suppliers vectorized and return a collected DataFrame with:
-    - component_* columns
-    - composite_risk clamped to [0, 1]
-
-    If apply_filters=True, applies ScenarioConfig threshold and region filters.
-    """
+    """Score suppliers vectorized; composite clamped to [0, 1]."""
     if isinstance(df, pl.LazyFrame):
         lf = df
     elif isinstance(df, pl.DataFrame):
@@ -140,7 +132,7 @@ def score_suppliers(
         lf = lf.filter(pl.col("composite_risk") >= config.min_risk_threshold)
         lf = lf.filter(pl.col("composite_risk") <= config.max_risk_threshold)
 
-        if config.regions:
-            lf = lf.filter(pl.col("region").is_in(config.regions))
+    if config.regions:
+        lf = lf.filter(pl.col("region").is_in(config.regions))
 
     return lf.collect()
