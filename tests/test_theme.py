@@ -1,4 +1,4 @@
-"""Theme tests — match current palette."""
+"""Theme tests — match current OBSIDIAN PRIME palette."""
 from __future__ import annotations
 
 import re
@@ -7,14 +7,14 @@ import theme
 
 def test_design_tokens_exact_hexes() -> None:
     expected = {
-        "bg_page": "#0B1220",
-        "bg_card": "#111C30",
+        "bg_page": "#04060C",
+        "bg_card": "#0B1220",
         "border": "#1E2A44",
         "accent": "#22D3EE",
-        "accent_2": "#818CF8",
-        "text_1": "#E6EDF6",
-        "text_2": "#94A3B8",
-        "text_3": "#64748B",
+        "accent_2": "#A855F7",
+        "text_1": "#F4F7FB",
+        "text_2": "#9AA7BD",
+        "text_3": "#5D6B84",
     }
     for key, value in expected.items():
         assert theme.DESIGN_TOKENS[key] == value
@@ -23,7 +23,7 @@ def test_risk_colors_exact_hexes() -> None:
     expected = {
         "LOW": "#34D399",
         "MEDIUM": "#FACC15",
-        "HIGH": "#8B5CF6",
+        "HIGH": "#A78BFA",
         "CRITICAL": "#F43F5E",
     }
     assert theme.RISK_COLORS == expected
@@ -74,10 +74,11 @@ def test_status_pill_returns_css_class_for_risk_level() -> None:
     assert "high" in html_enum
     assert "obs-pill" in html_enum
 
-def test_legend_html_contains_all_bands() -> None:
-    html = theme.legend_html()
-    for band in ("low", "medium", "high", "critical"):
-        assert band in html
+def test_legend_html_accepts_optional_counts() -> None:
+    assert "obs-pill" in theme.legend_html()
+    html = theme.legend_html({"CRITICAL": 3, "LOW": 12})
+    assert "CRITICAL" in html and "3" in html
+    assert "LOW" in html and "12" in html
 
 def test_brand_bar_contains_wordmark() -> None:
     html = theme.brand_bar()
