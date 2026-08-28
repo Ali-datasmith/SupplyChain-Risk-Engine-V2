@@ -23,7 +23,7 @@ def test_risk_colors_exact_hexes() -> None:
     expected = {
         "LOW": "#34D399",
         "MEDIUM": "#FACC15",
-        "HIGH": "#FB923C",
+        "HIGH": "#8B5CF6",
         "CRITICAL": "#F43F5E",
     }
     assert theme.RISK_COLORS == expected
@@ -51,7 +51,7 @@ def test_inject_theme_css_no_forbidden_hex() -> None:
 
 def test_inject_theme_css_required_classes() -> None:
     css = theme.inject_theme_css()
-    for required in (".obs-card", ".obs-pill", ".obs-micro", ".obs-brand", ".obs-ops", ".obs-empty"):
+    for required in (".obs-card", ".obs-pill", ".obs-micro", ".obs-brand", ".obs-ops", ".obs-empty", ".map-frame"):
         assert required in css
 
 def test_kpi_card_returns_css_classes() -> None:
@@ -75,7 +75,7 @@ def test_status_pill_returns_css_class_for_risk_level() -> None:
     assert "obs-pill" in html_enum
 
 def test_legend_html_contains_all_bands() -> None:
-    html = theme.legend_html({"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4})
+    html = theme.legend_html()
     for band in ("low", "medium", "high", "critical"):
         assert band in html
 

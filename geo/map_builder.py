@@ -15,7 +15,7 @@ import polars as pl
 import pydeck as pdk
 
 from schemas.scenario_schema import ScenarioConfig
-from theme import RISK_RGB
+from theme import RISK_RGB, legend_html
 
 
 def _esc(column: str) -> pl.Expr:
@@ -165,6 +165,8 @@ def render_in_streamlit(map_obj: pdk.Deck, height: int = 680):
         html = ""
 
     if html:
+        st.markdown('<div class="map-frame">', unsafe_allow_html=True)
         components.html(html, height=height, scrolling=False)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.pydeck_chart(map_obj, use_container_width=True)
