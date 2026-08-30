@@ -155,9 +155,8 @@ def deck_to_html(map_obj: pdk.Deck) -> str:
 
 
 def render_in_streamlit(map_obj: pdk.Deck, height: int = 680):
-    """Embed the self-contained deck.gl document in a Streamlit iframe."""
+    """Embed the self-contained deck.gl document in a Streamlit iframe / html."""
     import streamlit as st
-    import streamlit.components.v1 as components
 
     try:
         html = deck_to_html(map_obj)
@@ -166,7 +165,13 @@ def render_in_streamlit(map_obj: pdk.Deck, height: int = 680):
 
     if html:
         st.markdown('<div class="map-frame">', unsafe_allow_html=True)
-        components.html(html, height=height, scrolling=False)
+        if hasattr(st, "html"):
+            st.html(html, height=height, scrolling=False)
+        elif hasattr(st, "iframe"):
+            st.iframe(html, height=height, scrolling=False)
+        else:
+            import streamlit.components.v1 as components
+            components.html(html, height=height, scrolling=False)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.pydeck_chart(map_obj, use_container_width=True)
+        st.pydeck_chart(map_obj, width="stretch")

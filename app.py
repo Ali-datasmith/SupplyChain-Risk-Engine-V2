@@ -74,7 +74,7 @@ if not check_auth_state(st.session_state):
 
         with st.form("login_form"):
             password_input = st.text_input("Argon2id Password Authentication", type="password", placeholder="Enter enterprise key...")
-            submit_login = st.form_submit_button("🔑 Login with Password", use_container_width=True)
+            submit_login = st.form_submit_button("🔑 Login with Password", width="stretch")
 
             if submit_login:
                 if verify_password(password_input, DEFAULT_ADMIN_HASH) or password_input == "Admin2026!RiskEngine":
@@ -86,7 +86,7 @@ if not check_auth_state(st.session_state):
 
         st.markdown("<div style='text-align: center; margin: 15px 0; color: #5D6B84;'>— OR —</div>", unsafe_allow_html=True)
 
-        if st.button("🚀 1-Click Recruiter Demo Access", use_container_width=True, type="primary"):
+        if st.button("🚀 1-Click Recruiter Demo Access", width="stretch", type="primary"):
             login_user(st.session_state, is_demo=True)
             st.rerun()
 
@@ -100,7 +100,7 @@ with st.sidebar:
     else:
         st.success("🛡️ Authenticated Enterprise")
 
-    if st.button("🚪 Logout", use_container_width=True):
+    if st.button("🚪 Logout", width="stretch"):
         logout_user(st.session_state)
         st.rerun()
 
@@ -123,7 +123,7 @@ with col1:
         upload_source = uploaded_file.getvalue()
 
 with col2:
-    if st.button("⚡ Load Demo Data", use_container_width=True):
+    if st.button("⚡ Load Demo Data", width="stretch"):
         demo_path = ROOT / "suppliers_3000.csv"
         if demo_path.exists():
             with open(demo_path, "rb") as f:
@@ -329,7 +329,7 @@ else:
                     log_x=True,
                 )
                 fig_matrix.update_layout(**theme.get_plotly_layout())
-                st.plotly_chart(fig_matrix, use_container_width=True)
+                st.plotly_chart(fig_matrix, width="stretch")
 
         # ══════════ WORLD MAP ══════════
         with tab_map:
