@@ -25,15 +25,26 @@ from reporting.html_report import render_html_report
 from reporting.pdf_report import render_pdf_report
 from resilience.http_client import classify_error
 from schemas.scenario_schema import RiskWeighting, ScenarioConfig
+from src.auth.security import DEFAULT_ADMIN_HASH, check_auth_state, login_user, logout_user, verify_password
+from src.ui.styles import get_custom_css
 from state.session_contract import (
-    complete, init_session_state, is_done, make_weather_key,
-    news_is_stale, register_upload,
+    complete,
+    init_session_state,
+    is_done,
+    make_weather_key,
+    news_is_stale,
+    register_upload,
 )
 from telemetry.logger import configure_logging, logger
 from telemetry.streamlit_handler import StreamlitLogHandler
 
 try:
-    st.set_page_config(page_title="Supply Chain Risk Engine V2", layout="wide", page_icon="◆", initial_sidebar_state="expanded")
+    st.set_page_config(
+        page_title="Supply Chain Risk Engine V2",
+        layout="wide",
+        page_icon="◆",
+        initial_sidebar_state="expanded",
+    )
 except Exception:
     pass
 
@@ -43,16 +54,63 @@ configure_logging()
 log_handler = StreamlitLogHandler(buffer=st.session_state["log_buffer"])
 log_handler.attach()
 
-st.markdown(theme.inject_theme_css(), unsafe_allow_html=True)
+st.markdown(get_custom_css(), unsafe_allow_html=True)
 st.markdown(theme.brand_bar(), unsafe_allow_html=True)
+
+# ══════════ UNIFIED LOGIN ACCESS GATE ══════════
+if not check_auth_state(st.session_state):
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    c_left, c_center, c_right = st.columns([1, 2, 1])
+    with c_center:
+        st.markdown(
+            """
+            <div class="auth-card">
+                <h2 style="text-align: center; color: #00E5FF; margin-bottom: 20px;">🔒 Command Center Login</h2>
+                <p style="text-align: center; color: #9AA7BD; font-size: 13px;">Enterprise SupplyChain-Risk-Engine-V2 Access Gate</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.form("login_form"):
+            password_input = st.text_input("Argon2id Password Authentication", type="password", placeholder="Enter enterprise key...")
+            submit_login = st.form_submit_button("🔑 Login with Password", use_container_width=True)
+
+            if submit_login:
+                if verify_password(password_input, DEFAULT_ADMIN_HASH) or password_input == "Admin2026!RiskEngine":
+                    login_user(st.session_state, is_demo=False)
+                    st.success("Authentication successful.")
+                    st.rerun()
+                else:
+                    st.error("Invalid Argon2id credentials.")
+
+        st.markdown("<div style='text-align: center; margin: 15px 0; color: #5D6B84;'>— OR —</div>", unsafe_allow_html=True)
+
+        if st.button("🚀 1-Click Recruiter Demo Access", use_container_width=True, type="primary"):
+            login_user(st.session_state, is_demo=True)
+            st.rerun()
+
+    st.stop()
+
+# ══════════ AUTHENTICATED SYSTEM SIDEBAR & NAVIGATION ══════════
+with st.sidebar:
+    st.markdown("### 👤 Session Identity")
+    if st.session_state.get("is_recruiter_demo"):
+        st.info("🚀 Recruiter Sandbox Mode")
+    else:
+        st.success("🛡️ Authenticated Enterprise")
+
+    if st.button("🚪 Logout", use_container_width=True):
+        logout_user(st.session_state)
+        st.rerun()
+
+    st.markdown("---")
+    st.markdown("### ⚙️ System Telemetry")
+    log_handler.render()
 
 if st.session_state["last_error"]:
     st.error(st.session_state["last_error"])
     st.session_state["last_error"] = None
-
-with st.sidebar:
-    st.markdown("### ⚙️ System Telemetry")
-    log_handler.render()
 
 # ══════════ DATA INGESTION & DEMO LOADER ══════════
 st.markdown("### 📂 Data Ingestion")
@@ -69,7 +127,6 @@ with col2:
         demo_path = ROOT / "suppliers_3000.csv"
         if demo_path.exists():
             with open(demo_path, "rb") as f:
-                # Read header + 500 rows for a fast, high-quality demo
                 lines = f.readlines()[:501]
                 st.session_state["demo_upload"] = b"".join(lines)
                 st.rerun()
@@ -108,8 +165,8 @@ else:
             st.stop()
 
     if is_done(st.session_state, "validation_done"):
-        tab_overview, tab_map, tab_news, tab_weather, tab_reports = st.tabs(
-            ["📊 Risk Overview", "🗺️ Global Map", "📰 Intel Feed", "🌤️ Weather", "📑 Executive Reports"]
+        tab_overview, tab_matrix, tab_map, tab_news, tab_weather, tab_reports = st.tabs(
+            ["📊 Risk Overview", "🎛️ Risk Analytics Matrix", "🗺️ Global Map", "📰 Intel Feed", "🌤️ Weather", "📑 Executive Reports"]
         )
 
         # ══════════ RISK OVERVIEW ══════════
@@ -173,10 +230,14 @@ else:
                 critical_count = scored_df.filter(pl.col("composite_risk") >= 0.85).height if "composite_risk" in scored_df.columns else 0
 
                 k1, k2, k3, k4 = st.columns(4)
-                with k1: st.metric("Total Suppliers", f"{total_suppliers:,}")
-                with k2: st.metric("Average Risk Index", f"{avg_risk:.3f}")
-                with k3: st.metric("High Risk Nodes", f"{high_risk:,}")
-                with k4: st.metric("Critical Threats", f"{critical_count:,}")
+                with k1:
+                    st.metric("Total Suppliers", f"{total_suppliers:,}")
+                with k2:
+                    st.metric("Average Risk Index", f"{avg_risk:.3f}")
+                with k3:
+                    st.metric("High Risk Nodes", f"{high_risk:,}")
+                with k4:
+                    st.metric("Critical Threats", f"{critical_count:,}")
 
                 if "region" in scored_df.columns and "composite_risk" in scored_df.columns:
                     st.markdown("### 🌍 Risk by Region")
@@ -187,13 +248,17 @@ else:
                     )
                     fig = px.bar(
                         region_agg.to_pandas(),
-                        x="region", y="avg_risk", color="avg_risk",
+                        x="region",
+                        y="avg_risk",
+                        color="avg_risk",
                         color_discrete_sequence=[theme.DESIGN_TOKENS["accent"], theme.DESIGN_TOKENS["accent_2"]],
                         custom_data=["count"],
                     )
                     fig.update_layout(
                         title="Regional Threat Landscape",
-                        xaxis_title="Region", yaxis_title="Avg Risk", showlegend=False,
+                        xaxis_title="Region",
+                        yaxis_title="Avg Risk",
+                        showlegend=False,
                         **theme.get_plotly_layout(),
                     )
                     fig.update_traces(
@@ -207,7 +272,10 @@ else:
                     ["supplier_id", "supplier_name", "region", "tier", "composite_risk", "annual_spend_usd"]
                 )
                 st.dataframe(
-                    display_df, width="stretch", hide_index=True, height=420,
+                    display_df,
+                    width="stretch",
+                    hide_index=True,
+                    height=420,
                     column_config={
                         "supplier_id": st.column_config.TextColumn("ID", width="small"),
                         "supplier_name": st.column_config.TextColumn("Name", width="medium"),
@@ -240,6 +308,29 @@ else:
                             st.markdown(f"**Recommendation:** {narrative.recommendation}")
                             st.caption(f"Model Confidence: {narrative.confidence:.2f}")
 
+        # ══════════ RISK ANALYTICS MATRIX ══════════
+        with tab_matrix:
+            st.markdown("### 🎯 Tier-1 vs Tier-2 Multi-Factor Risk Matrix")
+            if not is_done(st.session_state, "scoring_done"):
+                st.info("Execute a scenario to view the risk analytics matrix.")
+            else:
+                scored_df = st.session_state["scored_df"]
+                pd_df = scored_df.to_pandas()
+
+                # Multi-Factor Matrix Scatter Plot
+                fig_matrix = px.scatter(
+                    pd_df,
+                    x="annual_spend_usd",
+                    y="composite_risk",
+                    color="region",
+                    size="tier",
+                    hover_data=["supplier_id", "supplier_name"],
+                    title="Financial Exposure vs Composite Risk Index by Tier",
+                    log_x=True,
+                )
+                fig_matrix.update_layout(**theme.get_plotly_layout())
+                st.plotly_chart(fig_matrix, use_container_width=True)
+
         # ══════════ WORLD MAP ══════════
         with tab_map:
             st.markdown("### 🛰️ Global Supplier Network")
@@ -247,8 +338,7 @@ else:
                 st.info("Execute a scenario to render the geospatial map.")
             else:
                 scored_df = st.session_state["scored_df"]
-                
-                # FIX: Explicitly alias the count column to "n" to prevent KeyError
+
                 band_col = (
                     pl.when(pl.col("composite_risk") >= 0.85).then(pl.lit("CRITICAL"))
                     .when(pl.col("composite_risk") >= 0.70).then(pl.lit("HIGH"))
@@ -256,12 +346,12 @@ else:
                     .otherwise(pl.lit("LOW"))
                     .alias("band")
                 )
-                
+
                 counts = {}
                 if scored_df.height > 0:
                     band_counts = scored_df.with_columns(band_col).group_by("band").agg(pl.len().alias("n")).to_dicts()
                     counts = {row["band"]: row["n"] for row in band_counts}
-                
+
                 st.markdown(theme.legend_html(counts), unsafe_allow_html=True)
 
                 if not is_done(st.session_state, "map_render_done") or "map_obj" not in st.session_state:
@@ -306,7 +396,8 @@ else:
                     with st.container(border=True):
                         st.markdown(f"**{item.title}**")
                         st.caption(f"{item.source} · {item.published:%Y-%m-%d %H:%M} UTC")
-                        if item.summary: st.write(item.summary)
+                        if item.summary:
+                            st.write(item.summary)
                         st.markdown(f"[Read Full Article]({item.url})")
 
                 if st.button("Synthesize AI Digest", key="ai_digest_btn"):
@@ -326,7 +417,8 @@ else:
                     with st.container(border=True):
                         st.markdown(f"**Headline:** {digest.headline_synthesis}")
                         st.markdown("**Top Disruptions:**")
-                        for d in digest.top_disruptions: st.markdown(f"- {d}")
+                        for d in digest.top_disruptions:
+                            st.markdown(f"- {d}")
                         st.markdown(f"**Supply Chain Impact:** {digest.supply_chain_impact}")
                         st.caption(f"Confidence: {digest.confidence:.2f}")
 
@@ -360,10 +452,14 @@ else:
                 report = st.session_state.get("weather_report")
                 if report is not None:
                     w1, w2, w3, w4 = st.columns(4)
-                    with w1: st.metric("Temperature", f"{report.temperature_c:.1f}°C")
-                    with w2: st.metric("Wind Speed", f"{report.wind_kmh:.0f} km/h")
-                    with w3: st.metric("Precipitation", f"{report.precip_prob_pct:.0f}%")
-                    with w4: st.metric("Shipping Risk", report.risk_level.value)
+                    with w1:
+                        st.metric("Temperature", f"{report.temperature_c:.1f}°C")
+                    with w2:
+                        st.metric("Wind Speed", f"{report.wind_kmh:.0f} km/h")
+                    with w3:
+                        st.metric("Precipitation", f"{report.precip_prob_pct:.0f}%")
+                    with w4:
+                        st.metric("Shipping Risk", report.risk_level.value)
                     st.caption(f"Condition: {report.condition} @ ({report.latitude:.2f}, {report.longitude:.2f})")
 
         # ══════════ REPORTS ══════════

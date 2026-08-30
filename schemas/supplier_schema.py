@@ -102,6 +102,7 @@ class SupplierRecord(pa.DataFrameModel):
         coerce = False
 
     @pa.dataframe_check
+    @classmethod
     def spend_matches_tier_floor(cls, data: object) -> pl.LazyFrame:
         """Tier-1 (critical) suppliers must carry non-trivial annual spend."""
         lf = _get_check_lazyframe(data)

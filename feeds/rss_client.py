@@ -46,26 +46,34 @@ def _parse_published(entry) -> datetime:
 
 
 def _fetch_one(name: str) -> list[NewsItem]:
-    url = RSS_SOURCES[name]
+    url = RSS_SOURCES.get(name, name)
     try:
         payload = _fetch_feed(url)
     except Exception as exc:
         logger.bind(source="rss").warning(f"Feed fetch failed for {name}: {exc}")
         return []
 
-    parsed = feedparser.parse(payload)
-    items = [
-        NewsItem(
-            title=str(entry.get("title", "")),
-            url=str(entry.get("link", "")),
-            source=name,
-            published=_parse_published(entry),
-            summary=entry.get("summary") or None,
-        )
-        for entry in parsed.entries
-    ]
-    logger.bind(source="rss").info(f"Fetched {len(parsed.entries)} entries from {name}")
-    return items
+    try:
+        parsed = feedparser.parse(payload)
+        if getattr(parsed, "bozo", 0) and not parsed.entries:
+            logger.bind(source="rss").warning(f"Feed parsing bozo flag set for {name}")
+            return []
+
+        items = [
+            NewsItem(
+                title=str(entry.get("title", "") or "Untitled"),
+                url=str(entry.get("link", "") or url),
+                source=name,
+                published=_parse_published(entry),
+                summary=entry.get("summary") or None,
+            )
+            for entry in parsed.entries
+        ]
+        logger.bind(source="rss").info(f"Fetched {len(items)} entries from {name}")
+        return items
+    except Exception as exc:
+        logger.bind(source="rss").warning(f"Feed parsing error for {name}: {exc}")
+        return []
 
 
 def fetch_news(

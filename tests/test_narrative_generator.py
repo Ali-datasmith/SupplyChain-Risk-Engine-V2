@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from ai import narrative_generator
-from resilience.http_client import classify_error
+from resilience.http_client import CAT_AUTH, CAT_FALLBACK, CAT_QUOTA, CAT_SCHEMA, CAT_TIMEOUT, classify_error
 from schemas.narrative_schema import RiskLevel, RiskNarrative
 
 
@@ -118,16 +118,16 @@ def test_batch_splitting_exceeds_10k_tokens(mock_genai_client: MagicMock) -> Non
 
 def test_classify_error_categories() -> None:
     """Verify categorized error mapping from multi-ai-research-digest."""
-    assert classify_error(Exception("429 Too Many Requests")) == "rate_limit"
-    assert classify_error(Exception("quota exceeded")) == "rate_limit"
+    assert classify_error(Exception("429 Too Many Requests")) == CAT_QUOTA
+    assert classify_error(Exception("quota exceeded")) == CAT_QUOTA
 
-    assert classify_error(Exception("504 Gateway Timeout")) == "timeout"
-    assert classify_error(Exception("Deadline Exceeded")) == "timeout"
+    assert classify_error(Exception("504 Gateway Timeout")) == CAT_TIMEOUT
+    assert classify_error(Exception("Deadline Exceeded")) == CAT_TIMEOUT
 
-    assert classify_error(Exception("Pydantic validation error")) == "schema"
-    assert classify_error(Exception("schema mismatch")) == "schema"
+    assert classify_error(Exception("Pydantic validation error")) == CAT_SCHEMA
+    assert classify_error(Exception("schema mismatch")) == CAT_SCHEMA
 
-    assert classify_error(Exception("401 Unauthorized api_key")) == "auth"
-    assert classify_error(Exception("403 Forbidden")) == "auth"
+    assert classify_error(Exception("401 Unauthorized api_key")) == CAT_AUTH
+    assert classify_error(Exception("403 Forbidden")) == CAT_AUTH
 
-    assert classify_error(Exception("Unknown random error")) == "fallback"
+    assert classify_error(Exception("Unknown random error")) == CAT_FALLBACK

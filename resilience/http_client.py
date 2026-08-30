@@ -43,29 +43,36 @@ http_retry = retry(
 )
 
 
+CAT_QUOTA = "CAT_QUOTA"
+CAT_TIMEOUT = "CAT_TIMEOUT"
+CAT_AUTH = "CAT_AUTH"
+CAT_SCHEMA = "CAT_SCHEMA"
+CAT_FALLBACK = "CAT_FALLBACK"
+
+
 def classify_error(exc: BaseException) -> str:
-    """Categorized error mapping. Categories: rate_limit, timeout, schema, auth, fallback."""
+    """Categorized error mapping. Categories: CAT_QUOTA, CAT_TIMEOUT, CAT_AUTH, CAT_SCHEMA, CAT_FALLBACK."""
     if isinstance(exc, httpx.HTTPStatusError):
         code = exc.response.status_code
         if code == 429:
-            return "rate_limit"
+            return CAT_QUOTA
         if code in (401, 403):
-            return "auth"
+            return CAT_AUTH
         if code in (502, 503, 504):
-            return "timeout"
+            return CAT_TIMEOUT
 
     msg = str(exc).lower()
 
-    if "429" in msg or "quota" in msg or "rate_limit" in msg:
-        return "rate_limit"
+    if "429" in msg or "quota" in msg or "rate_limit" in msg or "rate limit" in msg:
+        return CAT_QUOTA
 
-    if "504" in msg or "timeout" in msg or "deadline" in msg:
-        return "timeout"
+    if "504" in msg or "timeout" in msg or "deadline" in msg or "timed out" in msg:
+        return CAT_TIMEOUT
 
-    if "401" in msg or "403" in msg or "auth" in msg or "api_key" in msg:
-        return "auth"
+    if "401" in msg or "403" in msg or "auth" in msg or "api_key" in msg or "unauthorized" in msg:
+        return CAT_AUTH
 
     if "schema" in msg or "validation" in msg or "pydantic" in msg or "pydantic_core" in msg:
-        return "schema"
+        return CAT_SCHEMA
 
-    return "fallback"
+    return CAT_FALLBACK

@@ -3,10 +3,8 @@ from __future__ import annotations
 
 from collections import deque
 
-import pytest
 
 from state.session_contract import (
-    SESSION_KEYS,
     complete,
     init_session_state,
     is_done,

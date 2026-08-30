@@ -213,10 +213,14 @@ def kpi_card(label: str, value: str | float | int, delta: str | None = None, del
     accent_class = ""
     if accent in ("indigo", "risk-low", "risk-medium", "risk-high", "risk-critical"):
         accent_class = accent
-    elif accent == "risk_low": accent_class = "risk-low"
-    elif accent == "risk_medium": accent_class = "risk-medium"
-    elif accent == "risk_high": accent_class = "risk-high"
-    elif accent == "risk_critical": accent_class = "risk-critical"
+    elif accent == "risk_low":
+        accent_class = "risk-low"
+    elif accent == "risk_medium":
+        accent_class = "risk-medium"
+    elif accent == "risk_high":
+        accent_class = "risk-high"
+    elif accent == "risk_critical":
+        accent_class = "risk-critical"
     delta_html = f'<div class="obs-kpi-delta {delta_dir}">{delta}</div>' if delta else ""
     return (
         f'<div class="obs-card {accent_class}">'

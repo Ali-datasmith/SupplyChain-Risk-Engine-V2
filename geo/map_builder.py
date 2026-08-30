@@ -15,7 +15,7 @@ import polars as pl
 import pydeck as pdk
 
 from schemas.scenario_schema import ScenarioConfig
-from theme import RISK_RGB, legend_html
+from theme import RISK_RGB
 
 
 def _esc(column: str) -> pl.Expr:

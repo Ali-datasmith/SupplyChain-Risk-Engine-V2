@@ -25,7 +25,7 @@ def _estimate_tokens(text: str) -> int:
 
 def _chunk_rows(rows: list[dict], max_tokens: int = MAX_INPUT_TOKENS) -> list[list[dict]]:
     chunks: list[list[dict]] = []
-    current_chunk: list[list[dict]] = []
+    current_chunk: list[dict] = []
     current_tokens = 0
 
     for row in rows:
@@ -84,8 +84,9 @@ def generate(supplier_rows: list[dict]) -> dict[str, RiskNarrative]:
         narratives = _generate_batch(client, model_id, chunk)
         for narrative in narratives:
             sid = narrative.supplier_id
-            if sid not in valid_ids:
+            if not sid or sid not in valid_ids:
                 sid = name_to_id.get(narrative.supplier_name, "UNKNOWN")
-            results[sid] = narrative
+            if sid:
+                results[sid] = narrative
 
     return results

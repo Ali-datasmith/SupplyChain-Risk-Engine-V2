@@ -74,20 +74,24 @@ def _fetch_payload(latitude: float, longitude: float) -> dict:
 def fetch_weather(latitude: float, longitude: float) -> WeatherReport:
     """
     Fetch hourly forecast and derive a deterministic WeatherReport for the
-    worst-wind hour of the forecast window.
+    worst-wind hour of the forecast window. Handles missing keys gracefully.
     """
     payload = _fetch_payload(latitude, longitude)
-    hourly = payload["hourly"]
+    hourly = payload.get("hourly", {})
 
-    winds = [float(v) for v in hourly["windspeed_10m"]]
-    precip = [
-        float(v) if v is not None else 0.0
-        for v in (hourly.get("precipitation_probability") or [0] * len(winds))
-    ]
-    temps = [float(v) for v in hourly["temperature_2m"]]
-    codes = [int(v) for v in hourly["weathercode"]]
+    winds_raw = hourly.get("windspeed_10m") or [0.0]
+    precip_raw = hourly.get("precipitation_probability") or [0.0]
+    temps_raw = hourly.get("temperature_2m") or [20.0]
+    codes_raw = hourly.get("weathercode") or [0]
 
-    idx = max(range(len(winds)), key=lambda i: winds[i])
+    length = max(len(winds_raw), len(precip_raw), len(temps_raw), len(codes_raw), 1)
+
+    winds = [float(v) if v is not None else 0.0 for v in (winds_raw + [0.0] * length)[:length]]
+    precip = [float(v) if v is not None else 0.0 for v in (precip_raw + [0.0] * length)[:length]]
+    temps = [float(v) if v is not None else 20.0 for v in (temps_raw + [20.0] * length)[:length]]
+    codes = [int(v) if v is not None else 0 for v in (codes_raw + [0] * length)[:length]]
+
+    idx = max(range(len(winds)), key=lambda i: winds[i]) if winds else 0
 
     wind_kmh = winds[idx]
     precip_pct = precip[idx]
