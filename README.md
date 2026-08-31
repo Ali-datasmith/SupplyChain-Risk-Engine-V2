@@ -187,4 +187,4 @@ python -m mypy --explicit-package-bases app.py theme.py engine/ ingestion/ feeds
 ## 10. License
 > **Why this section exists:** Guarantees legal compliance for open-source enterprise usage.
 
-Distributed under the MIT License. See `LICENSE` for details.
+Distributed under the MIT License. See [`LICENSE`](https://github.com/Ali-datasmith/SupplyChain-Risk-Engine-V2/blob/main/LICENSE) for details.
