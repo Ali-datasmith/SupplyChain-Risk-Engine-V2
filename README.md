@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="Image" src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" />
+
 # ⚡ Supply Chain Risk Engine V2
 
 > **Enterprise-Grade Supply Chain Risk Engine & Real-Time Intelligence Command Center**
