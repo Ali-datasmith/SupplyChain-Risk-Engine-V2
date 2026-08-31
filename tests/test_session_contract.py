@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from collections import deque
 
-
 from state.session_contract import (
     complete,
     init_session_state,

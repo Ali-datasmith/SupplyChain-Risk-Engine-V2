@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import hashlib
 from collections import deque
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from typing import Any, MutableMapping
+from typing import Any
 
 NEWS_TTL_SECONDS = 900  # 15 minutes
 

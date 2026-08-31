@@ -43,8 +43,9 @@ def verify_password(password: str, hashed_password: str) -> bool:
         return False
 
 
+DEMO_ENTERPRISE_KEY = "SupplyChain2026!Secured"
 # Default admin credential hash for demo / production default
-DEFAULT_ADMIN_HASH = hash_password("Admin2026!RiskEngine")
+DEFAULT_ADMIN_HASH = hash_password(DEMO_ENTERPRISE_KEY)
 
 
 def check_auth_state(session_state: dict[str, Any]) -> bool:

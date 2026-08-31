@@ -8,8 +8,8 @@ from ingestion.validation_gate import (
 )
 
 __all__ = [
-    "load_supplier_csv",
     "IngestionError",
     "ingest_supplier_csv",
+    "load_supplier_csv",
     "validate_supplier_lazyframe",
 ]

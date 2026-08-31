@@ -5,6 +5,7 @@ import re
 
 import theme
 
+
 def test_design_tokens_exact_hexes() -> None:
     expected = {
         "bg_page": "#04060C",

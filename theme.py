@@ -209,7 +209,7 @@ span[data-baseweb="tag"] { background: rgba(34,211,238,0.14) !important; border:
 </style>
 """
 
-def kpi_card(label: str, value: str | float | int, delta: str | None = None, delta_dir: str = "neutral", accent: str = "cyan") -> str:
+def kpi_card(label: str, value: str | float, delta: str | None = None, delta_dir: str = "neutral", accent: str = "cyan") -> str:
     accent_class = ""
     if accent in ("indigo", "risk-low", "risk-medium", "risk-high", "risk-critical"):
         accent_class = accent

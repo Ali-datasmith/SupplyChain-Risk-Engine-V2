@@ -1,6 +1,8 @@
 """Loguru telemetry configuration."""
 import sys
+
 from loguru import logger
+
 
 def configure_logging():
     """Configure loguru sinks. Safe to call multiple times."""

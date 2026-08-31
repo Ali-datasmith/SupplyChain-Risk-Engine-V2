@@ -28,7 +28,7 @@ class ScenarioConfig(BaseModel):
     max_map_points: int = Field(default=50_000, gt=0, le=250_000)
 
     @model_validator(mode="after")
-    def check_threshold_order(self) -> "ScenarioConfig":
+    def check_threshold_order(self) -> ScenarioConfig:
         if self.min_risk_threshold > self.max_risk_threshold:
             raise ValueError("min_risk_threshold must be <= max_risk_threshold")
         return self

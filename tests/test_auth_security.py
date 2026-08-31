@@ -3,7 +3,13 @@ Tests for security authentication module.
 """
 from __future__ import annotations
 
-from src.auth.security import check_auth_state, hash_password, login_user, logout_user, verify_password
+from src.auth.security import (
+    check_auth_state,
+    hash_password,
+    login_user,
+    logout_user,
+    verify_password,
+)
 
 
 def test_hash_and_verify_password() -> None:

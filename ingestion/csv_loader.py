@@ -9,8 +9,8 @@ then surfaced by the Pandera gate as structured failure cases.
 from __future__ import annotations
 
 import io
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Iterable, Mapping
 
 import polars as pl
 

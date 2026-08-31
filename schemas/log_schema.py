@@ -24,7 +24,7 @@ class AppLog(BaseModel):
     extra: dict[str, object] = Field(default_factory=dict)
 
     @classmethod
-    def from_loguru_record(cls, record: dict) -> "AppLog":
+    def from_loguru_record(cls, record: dict) -> AppLog:
         extra = dict(record.get("extra", {}))
         return cls(
             timestamp=record["time"],

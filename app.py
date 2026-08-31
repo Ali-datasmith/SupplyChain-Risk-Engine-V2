@@ -25,7 +25,14 @@ from reporting.html_report import render_html_report
 from reporting.pdf_report import render_pdf_report
 from resilience.http_client import classify_error
 from schemas.scenario_schema import RiskWeighting, ScenarioConfig
-from src.auth.security import DEFAULT_ADMIN_HASH, check_auth_state, login_user, logout_user, verify_password
+from src.auth.security import (
+    DEFAULT_ADMIN_HASH,
+    DEMO_ENTERPRISE_KEY,
+    check_auth_state,
+    login_user,
+    logout_user,
+    verify_password,
+)
 from src.ui.styles import get_custom_css
 from state.session_contract import (
     complete,
@@ -59,14 +66,19 @@ st.markdown(theme.brand_bar(), unsafe_allow_html=True)
 
 # ══════════ UNIFIED LOGIN ACCESS GATE ══════════
 if not check_auth_state(st.session_state):
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
         st.markdown(
-            """
+            f"""
             <div class="auth-card">
-                <h2 style="text-align: center; color: #00E5FF; margin-bottom: 20px;">🔒 Command Center Login</h2>
-                <p style="text-align: center; color: #9AA7BD; font-size: 13px;">Enterprise SupplyChain-Risk-Engine-V2 Access Gate</p>
+                <h2 style="text-align: center; color: #00E5FF; margin-bottom: 12px;">🔒 Command Center Login</h2>
+                <p style="text-align: center; color: #9AA7BD; font-size: 13px; margin-bottom: 16px;">Enterprise SupplyChain-Risk-Engine-V2 Access Gate</p>
+                <div style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.4); border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 15px;">
+                    <span style="color: #00E5FF; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;">
+                        🔑 Demo Key: <code>{DEMO_ENTERPRISE_KEY}</code>
+                    </span>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -77,7 +89,7 @@ if not check_auth_state(st.session_state):
             submit_login = st.form_submit_button("🔑 Login with Password", width="stretch")
 
             if submit_login:
-                if verify_password(password_input, DEFAULT_ADMIN_HASH) or password_input == "Admin2026!RiskEngine":
+                if verify_password(password_input, DEFAULT_ADMIN_HASH) or password_input in (DEMO_ENTERPRISE_KEY, "Admin2026!RiskEngine"):
                     login_user(st.session_state, is_demo=False)
                     st.success("Authentication successful.")
                     st.rerun()

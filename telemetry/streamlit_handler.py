@@ -1,6 +1,7 @@
 """Streamlit loguru handler with safe dictionary formatting and wrapped lines."""
-import streamlit as st
 from collections import deque
+
+import streamlit as st
 from loguru import logger
 
 

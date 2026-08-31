@@ -4,10 +4,15 @@ from __future__ import annotations
 import httpx
 
 import resilience.http_client as hc
-from resilience.http_client import get_http_client, http_retry
-
-
-from resilience.http_client import CAT_AUTH, CAT_QUOTA, CAT_SCHEMA, CAT_TIMEOUT, classify_error
+from resilience.http_client import (
+    CAT_AUTH,
+    CAT_QUOTA,
+    CAT_SCHEMA,
+    CAT_TIMEOUT,
+    classify_error,
+    get_http_client,
+    http_retry,
+)
 
 
 def test_classify_error_categories() -> None:

@@ -7,7 +7,14 @@ import httpx
 import pytest
 
 from ai import narrative_generator
-from resilience.http_client import CAT_AUTH, CAT_FALLBACK, CAT_QUOTA, CAT_SCHEMA, CAT_TIMEOUT, classify_error
+from resilience.http_client import (
+    CAT_AUTH,
+    CAT_FALLBACK,
+    CAT_QUOTA,
+    CAT_SCHEMA,
+    CAT_TIMEOUT,
+    classify_error,
+)
 from schemas.narrative_schema import RiskLevel, RiskNarrative
 
 
