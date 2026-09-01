@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" width="100%" height="260px" style="object-fit: cover; border-radius: 8px;" alt="Supply Chain Risk Engine V2 Header Banner" />
+  <img src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" width="100%" alt="Supply Chain Risk Engine V2 Header Banner" />
 </p>
 
 # ⚡ Supply Chain Risk Engine V2
@@ -31,6 +31,8 @@ https://github.com/user-attachments/assets/2d498fc6-24e9-40ff-a2f8-d4691a8e3b45
 - **CI Matrix**: Multi-version test verification via GitHub Actions.
 - **CodeQL SAST**: Automated static analysis security scanning.
 - **Zero-Error Ruff & Mypy**: Strict linting and typing compliance.
+
+---
 
 ## 2. Executive Summary & V2 Architectural Highlights
 > **Why this section exists:** Highlights performance paradigms and structural enhancements delivered in the V2 engine upgrade.
