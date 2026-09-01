@@ -1,16 +1,26 @@
-<img width="1672" height="941" alt="Image" src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" width="100%" height="260px" style="object-fit: cover; border-radius: 8px;" alt="Supply Chain Risk Engine V2 Header Banner" />
+</p>
 
 # ⚡ Supply Chain Risk Engine V2
 
 > **Enterprise-Grade Supply Chain Risk Engine & Real-Time Intelligence Command Center**
 
-![Python](https://img.shields.io/badge/Python-3.12%20|%203.13-blue?style=flat-square&logo=python)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.38+-FF4B4B?style=flat-square&logo=streamlit)
-![CI](https://github.com/Ali-datasmith/SupplyChain-Risk-Engine-V2/actions/workflows/ci.yml/badge.svg)
-![CodeQL](https://github.com/Ali-datasmith/SupplyChain-Risk-Engine-V2/actions/workflows/codeql-analysis.yml/badge.svg)
-![Ruff](https://img.shields.io/badge/Ruff-compliant-brightgreen?style=flat-square)
-![Mypy](https://img.shields.io/badge/Mypy-strict-blue?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.12%20|%203.13-blue?style=flat-square&logo=python" alt="Python Version" />
+  <img src="https://img.shields.io/badge/Streamlit-1.38+-FF4B4B?style=flat-square&logo=streamlit" alt="Streamlit" />
+  <img src="https://github.com/Ali-datasmith/SupplyChain-Risk-Engine-V2/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
+  <img src="https://github.com/Ali-datasmith/SupplyChain-Risk-Engine-V2/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL" />
+  <img src="https://img.shields.io/badge/Ruff-compliant-brightgreen?style=flat-square" alt="Ruff" />
+  <img src="https://img.shields.io/badge/Mypy-strict-blue?style=flat-square" alt="Mypy" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" />
+</p>
+
+---
+
+## 🎬 System Architecture & Live Command Center Demo
+
+https://github.com/user-attachments/assets/2d498fc6-24e9-40ff-a2f8-d4691a8e3b45
 
 ---
 
@@ -21,8 +31,6 @@
 - **CI Matrix**: Multi-version test verification via GitHub Actions.
 - **CodeQL SAST**: Automated static analysis security scanning.
 - **Zero-Error Ruff & Mypy**: Strict linting and typing compliance.
-
----
 
 ## 2. Executive Summary & V2 Architectural Highlights
 > **Why this section exists:** Highlights performance paradigms and structural enhancements delivered in the V2 engine upgrade.
