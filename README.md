@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" width="100%" alt="Supply Chain Risk Engine V2 Header Banner" />
+  <img src="https://github.com/user-attachments/assets/90dd36d6-50b3-403e-b504-28cd56128860" width="100%" height="260px" style="object-fit: cover; border-radius: 8px;" alt="Supply Chain Risk Engine V2 Header Banner" />
 </p>
 
 # ⚡ Supply Chain Risk Engine V2
