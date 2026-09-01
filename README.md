@@ -20,7 +20,7 @@
 
 ## 🎬 System Architecture & Live Command Center Demo
 
-https://github.com/user-attachments/assets/2d498fc6-24e9-40ff-a2f8-d4691a8e3b45
+https://github.com/user-attachments/assets/f1f50f16-397f-419e-adee-cdee3245f721
 
 ---
 
